@@ -1,16 +1,13 @@
 <?php
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    include 'config.php';
+
     $name = $_POST['name'];
     $email = $_POST['email'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT); // Hash password for security
     $user_type = $_POST['user_type']; // admin, staff, or user
 
-    // Database connection
-    $conn = new mysqli("localhost", "root", "", "event_management");
-
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
+    
 
     // Insert user into database
     $sql = "INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, ?)";
@@ -29,3 +26,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn->close();
 }
 ?>
+

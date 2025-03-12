@@ -1,11 +1,13 @@
 <?php
+
 session_start();
+require_once 'config.php'; // Include the config file
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header("Location: login.php");
     exit();
 }
-echo "Welcome, Admin " . $_SESSION['username'];
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,19 +42,19 @@ echo "Welcome, Admin " . $_SESSION['username'];
         .sidebar a {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 15px 20px;
             text-decoration: none;
             color: #f0f0f0;
             font-size: 16px;
-            transition: background 0.3s ease;
+            transition: background 0.3s ease, border-left 0.3s ease;
         }
         .sidebar a i {
             margin-right: 10px;
             font-size: 18px;
         }
-        .sidebar a:hover {
+        .sidebar a:hover, .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
-            border-left: 4px solid #fff;
+            border-left: 5px solid #fff;
         }
 
         /* Main content */
@@ -69,26 +71,40 @@ echo "Welcome, Admin " . $_SESSION['username'];
             padding: 15px;
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
         }
+        .navbar .dropdown-menu {
+            min-width: 200px;
+        }
 
         /* Dashboard Cards */
         .dashboard-card {
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease-in-out;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
         }
         .dashboard-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
         }
         .dashboard-card h5 {
             font-weight: bold;
         }
 
-        /* Buttons */
-        .btn-custom {
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 16px;
+        /* Table */
+        .table thead th {
+            background: #293CB7;
+            color: white;
+        }
+
+        /* Responsive Fix */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+            .content {
+                margin-left: 210px;
+            }
         }
     </style>
 </head>
@@ -96,45 +112,37 @@ echo "Welcome, Admin " . $_SESSION['username'];
     <!-- Sidebar -->
     <div class="sidebar">
         <h4>AU JAS</h4>
-        <a href="dashboard.php" onclick="changeHeader('Dashboard')"><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="Event Calendar.php" onclick="changeHeader('Event Calendar')"><i class="bi bi-calendar"></i> Event Calendar</a>
-        <a href="Event Management.php" onclick="changeHeader('Event Management')"><i class="bi bi-gear"></i> Event Management</a>
-        <a href="#" onclick="changeHeader('User Management')"><i class="bi bi-people"></i> User Management</a>
-        <a href="#" onclick="changeHeader('Reports')"><i class="bi bi-file-earmark-text"></i> Reports</a>
+        <a href="admin_dashboard.php" class="active" ><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="admin_Event Calendar.php" ><i class="bi bi-calendar"></i> Event Calendar</a>
+        <a href="admin_Event Management.php" ><i class="bi bi-gear"></i> Event Management</a>
+        <a href="admin_user management.php"><i class="bi bi-people"></i> User Management</a>
+        <a href="#" ><i class="bi bi-file-earmark-text"></i> Reports</a>
     </div>
 
     <div class="content">
         <!-- Navbar -->
         <nav class="navbar navbar-light">
-            <div class="container-fluid">
+            <div class="container-fluid d-flex justify-content-between">
                 <span class="navbar-brand mb-0 h1" id="headerTitle">Dashboard</span>
                 
-                <!-- User Info -->
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <?php
-                        if (isset($_SESSION['username'])) {
-                            echo htmlspecialchars($_SESSION['username']);
-                        } else {
-                            echo "User not logged in";
-                        }
-                        ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
+                <!-- User Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
         <!-- Content Section -->
         <section>
             <div class="alert alert-info" role="alert">
-                Breaking News: The ICT Department’s event is scheduled for 1/22/2025! Don’t miss it.
+                <strong>Breaking News:</strong> The ICT Department’s event is scheduled for 1/22/2025! Don’t miss it.
             </div>
         </section>
 
@@ -168,7 +176,7 @@ echo "Welcome, Admin " . $_SESSION['username'];
         <section class="new-bookings-table">
             <div class="container">
                 <h2 class="mb-4">New Bookings</h2>
-                <table class="table table-borderless">
+                <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -203,5 +211,3 @@ echo "Welcome, Admin " . $_SESSION['username'];
     </script>
 </body>
 </html>
-
-<a href="logout.php" class="btn btn-danger">Logout</a>
