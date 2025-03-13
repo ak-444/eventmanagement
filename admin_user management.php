@@ -17,37 +17,9 @@ if ($_SESSION['user_type'] == 'admin') {
     $dashboardLink = 'user_dashboard.php';
 }
 
-
-
-// Handle delete event request
-if (isset($_GET['delete_id'])) {
-    $delete_id = $_GET['delete_id'];
-
-    // Prepare SQL statement to delete the event
-    $stmt = $conn->prepare("DELETE FROM form_users WHERE user_id = ?");
-    $stmt->bind_param("i", $delete_id);
-
-    if ($stmt->execute()) {
-        echo "<script>alert('Event deleted successfully!'); window.location.href='admin_user management.php';</script>";
-    } else {
-        echo "<script>alert('Error deleting event: " . $conn->error . "');</script>";
-    }
-
-    $stmt->close();
-}
-
-
-
-// Fetch events from the database
-$sql = "SELECT * FROM events";
-$result = $conn->query($sql);
-
-if (!$result) {
-    die("Query failed: " . $conn->error);
-}
+// Get the current filename to determine the active page
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -58,10 +30,9 @@ if (!$result) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
-    <title>Event Management</title>
+    <title></title>
 
     <style>
-
         body {
             display: flex;
             background: #f4f4f4;
@@ -116,32 +87,15 @@ if (!$result) {
             margin-bottom: 30px;
             padding-top: 10px;
         }
-        .event-form {
-            display: none;
-            width: 350px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            position: absolute;
-            top: 120px;
-            left: 280px;
-        }
     </style>
-
 </head>
-
 
 <body>
 
-<?php
-// Get the current filename to determine which page is active
-$current_page = basename($_SERVER['PHP_SELF']);
-?>
-
+<!-- Sidebar -->
 <div class="sidebar">
     <h4>AU JAS</h4>
-    <a href="<?php echo $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
+    <a href="<?= $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
         <i class="bi bi-house-door"></i> Dashboard
     </a>
     <a href="admin_Event Calendar.php" class="<?= ($current_page == 'admin_Event Calendar.php') ? 'active' : ''; ?>">
@@ -158,45 +112,43 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </a>
 </div>
 
-
-
-    <div class="content">
-        <nav class="navbar navbar-light">
-            <div class="container-fluid d-flex justify-content-between">
-                <span class="navbar-brand mb-0 h1">User Management</span>
-                <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-
-        <div class="event-header">
-            <input type="text" class="form-control" placeholder="Search events..." style="width: 300px;">
-            <div>
-                
-                <button class="btn btn-success">Users</button>
-                <button class="btn btn-warning">Pending Users</button>
-                <button class="btn btn-primary" onclick="location.href='admin_user form.php'">Add User</button>
-
+<!-- Main Content -->
+<div class="content">
+    <nav class="navbar navbar-light">
+        <div class="container-fluid d-flex justify-content-between">
+            <span class="navbar-brand mb-0 h1">User Management</span>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <?= htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item">User Type: <?= htmlspecialchars($_SESSION['user_type']); ?></a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                </ul>
             </div>
         </div>
+    </nav>
 
-    
-        <section>
+    <div class="event-header">
+        <input type="text" class="form-control" placeholder="Search users..." style="width: 300px;">
+        <div>
+            <button class="btn btn-success">Users</button>
+            <button class="btn btn-warning" onclick="location.href='admin_pending_users.php'">Pending Users</button>
+            <button class="btn btn-primary" onclick="location.href='admin_user form.php'">Add User</button>
+        </div>
+    </div>
+
+    <!-- User Table -->
+<section>
     <h2>User Details</h2>
     <table class="table table-bordered">
         <thead>
             <tr>
                 <th>#</th>
-                <th>Name</th>
+                <th>Username</th>
                 <th>Email</th>
+                <th>User Type</th>
                 <th>Department</th>
                 <th>School ID</th>
                 <th>Action</th>
@@ -204,34 +156,35 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </thead>
         <tbody>
             <?php
-            $user_query = "SELECT user_id, name, email, department, school_id FROM form_users";
+            $user_query = "SELECT id, username, email, user_type, department, school_id FROM users WHERE status != 'pending'";
             $user_result = $conn->query($user_query);
 
             if ($user_result->num_rows > 0) {
+                $counter = 1;
                 while ($row = $user_result->fetch_assoc()) {
                     echo "<tr>
-                            <td>" . $row['user_id'] . "</td>
-                            <td>" . htmlspecialchars($row['name']) . "</td>
+                            <td>{$counter}</td>
+                            <td>" . htmlspecialchars($row['username']) . "</td>
                             <td>" . htmlspecialchars($row['email']) . "</td>
+                            <td>" . htmlspecialchars($row['user_type']) . "</td>
                             <td>" . htmlspecialchars($row['department']) . "</td>
                             <td>" . htmlspecialchars($row['school_id']) . "</td>
                             <td>
-                                <a href='?view_id=" . $row['user_id'] . "' class='btn btn-info btn-sm text-white'><i class='bi bi-eye'></i> View</a> 
-                                <a href='?edit_id=" . $row['user_id'] . "' class='btn btn-warning btn-sm text-white'><i class='bi bi-pencil'></i> Edit</a> 
-                                <a href='?delete_id=" . $row['user_id'] . "' class='btn btn-danger btn-sm text-white' onclick='return confirm(\"Are you sure you want to delete this user?\");'><i class='bi bi-trash'></i> Delete</a>
+                                <a href='?view_id={$row['id']}' class='btn btn-info btn-sm text-white'><i class='bi bi-eye'></i> View</a> 
+                                <a href='?edit_id={$row['id']}' class='btn btn-warning btn-sm text-white'><i class='bi bi-pencil'></i> Edit</a> 
+                                <a href='?delete_id={$row['id']}' class='btn btn-danger btn-sm text-white' onclick='return confirm(\"Are you sure you want to delete this user?\");'><i class='bi bi-trash'></i> Delete</a>
                             </td>
                           </tr>";
+                    $counter++;
                 }
             } else {
-                echo "<tr><td colspan='6'>No users available</td></tr>";
+                echo "<tr><td colspan='7'>No users available</td></tr>";
             }
             ?>
         </tbody>
     </table>
 </section>
+</div>
 
-
-        
-    </div>
 </body>
 </html>

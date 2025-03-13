@@ -1,14 +1,12 @@
 <?php
 session_start();
-require_once 'config.php'; // Include the database connection
+require_once 'config.php';
 
-// Redirect to login if the user is not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// Determine dashboard link based on user type
 if ($_SESSION['user_type'] == 'admin') {
     $dashboardLink = 'admin_dashboard.php';
 } elseif ($_SESSION['user_type'] == 'staff') {
@@ -17,13 +15,8 @@ if ($_SESSION['user_type'] == 'admin') {
     $dashboardLink = 'user_dashboard.php';
 }
 
-
-
-// Handle delete event request
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
-
-    // Prepare SQL statement to delete the event
     $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
     $stmt->bind_param("i", $delete_id);
 
@@ -32,22 +25,17 @@ if (isset($_GET['delete_id'])) {
     } else {
         echo "<script>alert('Error deleting event: " . $conn->error . "');</script>";
     }
-
     $stmt->close();
 }
 
-
-
-// Fetch events from the database
-$sql = "SELECT * FROM events";
+$sql = "SELECT id, event_name, event_date, event_time, venue FROM events";
 $result = $conn->query($sql);
 
 if (!$result) {
     die("Query failed: " . $conn->error);
 }
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -57,11 +45,8 @@ if (!$result) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-
     <title>Event Management</title>
-
     <style>
-
         body {
             display: flex;
             background: #f4f4f4;
@@ -94,7 +79,8 @@ if (!$result) {
             margin-right: 10px;
             font-size: 18px;
         }
-        .sidebar a:hover, .sidebar a.active {
+        .sidebar a:hover, 
+        .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
             border-left: 5px solid #fff;
         }
@@ -116,40 +102,58 @@ if (!$result) {
             margin-bottom: 30px;
             padding-top: 10px;
         }
-        .event-form {
-            display: none;
-            width: 350px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            position: absolute;
-            top: 120px;
-            left: 280px;
+        .table thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .table-bordered {
+            border: 1px solid #dee2e6;
+        }
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .form-control {
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        .dropdown-menu {
+            border: 1px solid rgba(0,0,0,.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,.1);
         }
     </style>
-
 </head>
-
-
 <body>
-
-    <div class="sidebar">
+<div class="sidebar">
         <h4>AU JAS</h4>
-        <a href="<?php echo $dashboardLink; ?>"><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="admin_Event Calendar.php"><i class="bi bi-calendar"></i> Event Calendar</a>
-        <a href="admin_Event Management.php" class="active"><i class="bi bi-gear"></i> Event Management</a>
-        <a href="admin_user management.php"><i class="bi bi-people"></i> User Management</a>
-        <a href="reports.php"><i class="bi bi-file-earmark-text"></i> Reports</a>
+        <a href="<?php echo $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
+            <i class="bi bi-house-door"></i> Dashboard
+        </a>
+        <a href="admin_Event Calendar.php" class="<?= ($current_page == 'admin_Event Calendar.php') ? 'active' : ''; ?>">
+            <i class="bi bi-calendar"></i> Event Calendar
+        </a>
+        <a href="admin_Event Management.php" class="<?= ($current_page == 'admin_Event Management.php') ? 'active' : ''; ?>">
+            <i class="bi bi-gear"></i> Event Management
+        </a>
+        <a href="admin_user management.php" class="<?= ($current_page == 'admin_user management.php') ? 'active' : ''; ?>">
+            <i class="bi bi-people"></i> User Management
+        </a>
+        <a href="reports.php" class="<?= ($current_page == 'reports.php') ? 'active' : ''; ?>">
+            <i class="bi bi-file-earmark-text"></i> Reports
+        </a>
     </div>
-
 
     <div class="content">
         <nav class="navbar navbar-light">
             <div class="container-fluid d-flex justify-content-between">
                 <span class="navbar-brand mb-0 h1">Event Management</span>
                 <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
                         <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -162,17 +166,17 @@ if (!$result) {
         </nav>
 
         <div class="event-header">
-            <input type="text" class="form-control" placeholder="Search events..." style="width: 300px;">
-            <div>
+            <div class="d-flex align-items-center">
+                <input type="text" class="form-control search-bar" placeholder="Search events...">
+            </div>
+            <div class="button-group">
                 <button class="btn btn-success">Months</button>
                 <button class="btn btn-success">All Events</button>
                 <button class="btn btn-warning">Pending Events</button>
                 <button class="btn btn-primary" onclick="location.href='admin_event form.php'">Add Event</button>
-
             </div>
         </div>
 
-    
         <section>
             <h2>All Events</h2>
             <table class="table table-bordered">
@@ -181,6 +185,8 @@ if (!$result) {
                         <th>#</th>
                         <th>Event Name</th>
                         <th>Event Date</th>
+                        <th>Event Time</th>
+                        <th>Venue</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -190,33 +196,24 @@ if (!$result) {
                         while($row = $result->fetch_assoc()) {
                             echo "<tr>
                                     <td>" . $row['id'] . "</td>
-                                    <td>" . $row['event_name'] . "</td>
-                                    <td>" . $row['event_date'] . "</td>
+                                    <td>" . htmlspecialchars($row['event_name']) . "</td>
+                                    <td>" . htmlspecialchars($row['event_date']) . "</td>
+                                    <td>" . htmlspecialchars($row['event_time']) . "</td>
+                                    <td>" . htmlspecialchars($row['venue']) . "</td>
                                     <td>
-                                        <a href='?view_id=" . $row['id'] . "' class='btn btn-info btn-sm text-white'><i class='bi bi-eye'></i> View</a> 
-                                        <a href='?edit_id=" . $row['id'] . "' class='btn btn-warning btn-sm text-white'><i class='bi bi-pencil'></i> Edit</a> 
+                                        <a href='?view_id=" . $row['id'] . "' class='btn btn-info btn-sm text-white'><i class='bi bi-eye'></i> View</a>
+                                        <a href='?edit_id=" . $row['id'] . "' class='btn btn-warning btn-sm text-white'><i class='bi bi-pencil'></i> Edit</a>
                                         <a href='?delete_id=" . $row['id'] . "' class='btn btn-danger btn-sm text-white' onclick='return confirm(\"Are you sure you want to delete this event?\");'><i class='bi bi-trash'></i> Delete</a>
                                     </td>
-                                  </tr>";
+                                </tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='4'>No events available</td></tr>";
+                        echo "<tr><td colspan='6'>No events available</td></tr>";
                     }
                     ?>
                 </tbody>
             </table>
         </section>
-
-
-
-
-        <script>
-            document.getElementById('showEventForm').addEventListener('click', function() {
-                document.getElementById('eventForm').style.display = 'block';
-
-            
-            });
-        </script>
     </div>
 </body>
 </html>

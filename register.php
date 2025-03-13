@@ -141,6 +141,23 @@
         </select>
       </div>
 
+      <div class="mb-3">
+        <label for="school_id" class="form-label">School ID</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+          <input type="text" class="form-control" id="school_id" name="school_id" placeholder="Enter School ID" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="department" class="form-label">Department</label>
+        <select class="form-select" id="department" name="department" required>
+          <option value="Information Technology">Information Technology</option>
+          <option value="Accounting">Accounting</option>
+          <option value="Business">Business</option>
+        </select>
+      </div>
+
       <button type="submit" class="btn btn-primary w-100">Register</button>
 
       <p class="register-text">Already have an account? <a href="login.php">Login here</a></p>
