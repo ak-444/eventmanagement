@@ -1,3 +1,15 @@
+<?php
+session_start();
+require_once 'config.php';
+
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['user', 'staff', 'admin'])) {
+    header("Location: login.php");
+    exit();
+}
+
+include 'sidebar.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,20 +82,8 @@
     </style>
 </head>
 <body>
-    <?php
-    session_start();
-    if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'user') {
-        header("Location: login.php");
-        exit();
-    }
-    ?>
-
     <!-- Sidebar -->
-    <div class="sidebar">
-        <h4>AU JAS</h4>
-        <a href="user_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="user_eventCalendar.php"><i class="bi bi-calendar"></i> Event Calendar</a>
-    </div>
+    <?php include 'sidebar.php'; ?>
 
     <div class="content">
         <!-- Navbar -->

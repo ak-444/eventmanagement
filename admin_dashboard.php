@@ -6,6 +6,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header("Location: login.php");
     exit();
 }
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>
@@ -110,14 +111,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
-        <h4>AU JAS</h4>
-        <a href="admin_dashboard.php" class="active" ><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="admin_Event Calendar.php" ><i class="bi bi-calendar"></i> Event Calendar</a>
-        <a href="admin_Event Management.php" ><i class="bi bi-gear"></i> Event Management</a>
-        <a href="admin_user management.php"><i class="bi bi-people"></i> User Management</a>
-        <a href="#" ><i class="bi bi-file-earmark-text"></i> Reports</a>
-    </div>
+    <?php include 'sidebar.php'; ?>
 
     <div class="content">
         <!-- Navbar -->
