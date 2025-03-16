@@ -32,7 +32,7 @@ $dashboardLink = match($user_type) {
     <?php elseif($user_type == 'staff') : ?>
         <!-- Staff-only links -->
         <a href="staff_event_management.php" class="<?= ($current_page == 'staff_event_management.php') ? 'active' : '' ?>">
-            <i class="bi bi-ticket-perforated"></i> My Submissions
+            <i class="bi bi-ticket-perforated"></i> Event Submissions
         </a>
     <?php endif; ?>
 

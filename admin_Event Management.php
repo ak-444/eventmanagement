@@ -28,7 +28,7 @@ if (isset($_GET['delete_id'])) {
     $stmt->close();
 }
 
-$sql = "SELECT id, event_name, event_date, event_time, venue FROM events";
+$sql = "SELECT id, event_name, event_date, event_time, venue FROM events WHERE status='Approved'";
 $result = $conn->query($sql);
 
 if (!$result) {
@@ -154,11 +154,11 @@ include 'sidebar.php';
                 <input type="text" class="form-control search-bar" placeholder="Search events...">
             </div>
             <div class="button-group">
-                <button class="btn btn-success">Months</button>
-                <button class="btn btn-success">All Events</button>
-                <button class="btn btn-warning">Pending Events</button>
-                <button class="btn btn-primary" onclick="location.href='admin_event form.php'">Add Event</button>
-            </div>
+            <button class="btn btn-success">Months</button>
+            <button class="btn btn-success">All Events</button>
+            <button class="btn btn-warning" onclick="location.href='admin_pending_events.php'">Pending Events</button>
+            <button class="btn btn-primary" onclick="location.href='admin_event form.php'">Add Event</button>
+        </div>
         </div>
 
         <section>

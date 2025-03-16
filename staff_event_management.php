@@ -152,7 +152,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <input type="text" class="form-control" placeholder="Search submissions..." style="max-width: 300px;">
         <div class="button-group">
             <button class="btn btn-success">All Submissions</button>
-            <button class="btn btn-warning">Pending</button>
             <button class="btn btn-primary" onclick="location.href='staff_event_form.php'">
                 <i class="bi bi-plus-lg"></i> New Submission
             </button>

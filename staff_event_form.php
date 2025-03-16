@@ -16,10 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $eventTime = $_POST['event_time'];
     $venue = $_POST['venue'];
     $description = $_POST['description'];
-    $submittedBy = $_SESSION['user_id'];
 
-    $stmt = $conn->prepare("INSERT INTO events (event_name, event_date, event_time, venue, description, submitted_by, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
-    $stmt->bind_param("sssssi", $eventName, $eventDate, $eventTime, $venue, $description, $submittedBy);
+    // Remove submitted_by from the SQL query and parameters
+    $stmt = $conn->prepare("INSERT INTO events 
+        (event_name, event_date, event_time, venue, event_description, status) 
+        VALUES (?, ?, ?, ?, ?, 'Pending')");
+        
+    // Change from "sssssi" to "sssss" (removed the integer parameter)
+    $stmt->bind_param("sssss", $eventName, $eventDate, $eventTime, $venue, $description);
 
     if ($stmt->execute()) {
         $success = "Event submitted successfully!";
