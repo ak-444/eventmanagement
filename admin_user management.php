@@ -19,6 +19,7 @@ if ($_SESSION['user_type'] == 'admin') {
 
 // Get the current filename to determine the active page
 $current_page = basename($_SERVER['PHP_SELF']);
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>
@@ -79,6 +80,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             border-bottom: 2px solid #e0e0e0;
             padding: 15px;
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
         .event-header {
             display: flex;
@@ -93,24 +95,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <body>
 
 <!-- Sidebar -->
-<div class="sidebar">
-    <h4>AU JAS</h4>
-    <a href="<?= $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
-        <i class="bi bi-house-door"></i> Dashboard
-    </a>
-    <a href="admin_Event Calendar.php" class="<?= ($current_page == 'admin_Event Calendar.php') ? 'active' : ''; ?>">
-        <i class="bi bi-calendar"></i> Event Calendar
-    </a>
-    <a href="admin_Event Management.php" class="<?= ($current_page == 'admin_Event Management.php') ? 'active' : ''; ?>">
-        <i class="bi bi-gear"></i> Event Management
-    </a>
-    <a href="admin_user management.php" class="<?= ($current_page == 'admin_user management.php') ? 'active' : ''; ?>">
-        <i class="bi bi-people"></i> User Management
-    </a>
-    <a href="reports.php" class="<?= ($current_page == 'reports.php') ? 'active' : ''; ?>">
-        <i class="bi bi-file-earmark-text"></i> Reports
-    </a>
-</div>
+<?php include 'sidebar.php'; ?>
 
 <!-- Main Content -->
 <div class="content">

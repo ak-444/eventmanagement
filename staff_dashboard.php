@@ -70,6 +70,7 @@ include 'sidebar.php';
             border-bottom: 2px solid #e0e0e0;
             padding: 15px;
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
 
         /* Dashboard Cards */
