@@ -90,9 +90,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['user_id'] = $id;
                 $_SESSION['username'] = $username;
                 $_SESSION['user_type'] = $user_type;
-
-                // Redirect based on user type
+                session_write_close(); // Release the session lock
                 redirectUser($user_type);
+
                 exit();
             } else {
                 echo "Invalid email or password.";
@@ -122,4 +122,7 @@ if (!function_exists('redirectUser')) {
         exit();
     }
 }
+$_SESSION['error'] = "Invalid email or password.";
+header("Location: login.php");
+exit();
 ?>
