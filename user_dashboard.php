@@ -82,8 +82,9 @@ include 'sidebar.php';
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
+    <!-- Sidebar -->\
     <?php include 'sidebar.php'; ?>
+    
 
     <div class="content">
         <!-- Navbar -->

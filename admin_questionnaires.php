@@ -7,48 +7,6 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if ($_SESSION['user_type'] == 'admin') {
-    $dashboardLink = 'admin_dashboard.php';
-} elseif ($_SESSION['user_type'] == 'staff') {
-    $dashboardLink = 'staff_dashboard.php';
-} else {
-    $dashboardLink = 'user_dashboard.php';
-}
-
-if (isset($_GET['delete_id'])) {
-    $delete_id = $_GET['delete_id'];
-    
-    // Start transaction
-    $conn->begin_transaction();
-    
-    try {
-        // First delete from event_attendees
-        $stmt1 = $conn->prepare("DELETE FROM event_attendees WHERE event_id = ?");
-        $stmt1->bind_param("i", $delete_id);
-        $stmt1->execute();
-        $stmt1->close();
-        
-        // Then delete from events
-        $stmt2 = $conn->prepare("DELETE FROM events WHERE id = ?");
-        $stmt2->bind_param("i", $delete_id);
-        $stmt2->execute();
-        $stmt2->close();
-        
-        $conn->commit();
-        
-        echo "<script>alert('Event deleted successfully!'); window.location.href='admin_Event Management.php';</script>";
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo "<script>alert('Error deleting event: " . $conn->error . "');</script>";
-    }
-}
-
-$sql = "SELECT id, event_name, event_date, event_time, venue FROM events WHERE status='Approved'";
-$result = $conn->query($sql);
-
-if (!$result) {
-    die("Query failed: " . $conn->error);
-}
 $current_page = basename($_SERVER['PHP_SELF']);
 include 'sidebar.php';
 ?>
@@ -61,7 +19,7 @@ include 'sidebar.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-    <title>Event Management</title>
+    <title>Questionnaires</title>
     <style>
         body {
             display: flex;
@@ -151,7 +109,7 @@ include 'sidebar.php';
     <div class="content">
         <nav class="navbar navbar-light">
             <div class="container-fluid d-flex justify-content-between">
-                <span class="navbar-brand mb-0 h1">Event Management</span>
+                <span class="navbar-brand mb-0 h1">Questionnaires</span>
                 <div class="dropdown">
                     <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
                         <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
@@ -167,60 +125,59 @@ include 'sidebar.php';
 
         <div class="event-header">
             <div class="d-flex align-items-center">
-                <input type="text" class="form-control search-bar" placeholder="Search events...">
+                <input type="text" class="form-control search-bar" placeholder="Search questionnaires...">
             </div>
             <div class="button-group">
-            <button class="btn btn-success">Months</button>
-            <button class="btn btn-success">All Events</button>
-            <button class="btn btn-warning" onclick="location.href='admin_pending_events.php'">Pending Events</button>
-            <button class="btn btn-primary" onclick="location.href='admin_event form.php'">Add Event</button>
-        </div>
+                <button class="btn btn-primary" onclick="location.href='add_questionnaire.php'">Add Questionnaire</button>
+            </div>
         </div>
 
         <section>
-            <h2>All Events</h2>
+            <h2>All Questionnaires</h2>
             <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Event Name</th>
-                        <th>Event Date</th>
-                        <th>Event Time</th>
-                        <th>Venue</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    if ($result->num_rows > 0) {
-                        while($row = $result->fetch_assoc()) {
-                            echo "<tr>
-                                    <td>" . $row['id'] . "</td>
-                                    <td>" . htmlspecialchars($row['event_name']) . "</td>
-                                    <td>" . htmlspecialchars($row['event_date']) . "</td>
-                                    <td>" . htmlspecialchars($row['event_time']) . "</td>
-                                    <td>" . htmlspecialchars($row['venue']) . "</td>
-                                    <td>
-                                        <a href='admin_view_events.php?id=" . $row['id'] . "' class='btn btn-info btn-sm text-white'>
-                                            <i class='bi bi-eye'></i> View
-                                        </a>
-                                        <a href='admin_edit_events.php?id=" . $row['id'] . "' class='btn btn-warning btn-sm text-white'>
-                                            <i class='bi bi-pencil'></i> Edit
-                                        </a>
-                                        <a href='?delete_id=" . $row['id'] . "' class='btn btn-danger btn-sm text-white' 
-                                            onclick='return confirm(\"Are you sure you want to delete this event?\");'>
-                                            <i class='bi bi-trash'></i> Delete
-                                        </a>
-                                    </td>
-                                </tr>";
-                        }
-                    } else {
-                        echo "<tr><td colspan='6' class='text-center'>No events available</td></tr>";
-                    }
-                    ?>
-                </tbody>
-                            
-               
+            <thead>
+    <tr>
+        <th>#</th>
+        <th>Questionnaire Name</th>
+        <th>Created On</th>
+        <th>Number of Questions</th>
+        <th>Action</th>
+    </tr>
+</thead>
+                
+<tbody>
+    <?php
+    // Fetch all questionnaires with event information and question count
+    $sql = "SELECT q.id, q.title, q.description, q.created_at, e.event_name, 
+        COUNT(qu.id) AS question_count
+        FROM questionnaires q
+        JOIN events e ON q.event_id = e.id
+        LEFT JOIN questions qu ON q.id = qu.questionnaire_id
+        GROUP BY q.id
+        ORDER BY q.created_at DESC";
+    
+    $result = $conn->query($sql);
+    
+    if ($result && $result->num_rows > 0) {
+        $counter = 1;
+        while ($row = $result->fetch_assoc()) {
+            echo "<tr>";
+            echo "<td>" . $counter++ . "</td>";
+            echo "<td>" . htmlspecialchars($row['title']) . " <small>(" . htmlspecialchars($row['event_name']) . ")</small></td>";
+            echo "<td>" . date('Y-m-d', strtotime($row['created_at'])) . "</td>";
+            echo "<td>" . $row['question_count'] . " questions</td>";
+            echo "<td>
+                    <a href='view_questionnaire.php?id=" . $row['id'] . "' class='btn btn-info btn-sm text-white'><i class='bi bi-eye'></i> View</a>
+                    <a href='edit_questionnaire.php?id=" . $row['id'] . "' class='btn btn-warning btn-sm text-white'><i class='bi bi-pencil'></i> Edit</a>
+                    <a href='delete_questionnaire.php?id=" . $row['id'] . "' class='btn btn-danger btn-sm text-white' onclick='return confirm(\"Are you sure you want to delete this questionnaire?\")'><i class='bi bi-trash'></i> Delete</a>
+                  </td>";
+            echo "</tr>";
+        }
+    } else {
+        echo "<tr><td colspan='5' class='text-center'>No questionnaires found</td></tr>";
+    }
+    ?>
+</tbody>
             </table>
         </section>
     </div>

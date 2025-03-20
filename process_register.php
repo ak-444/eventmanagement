@@ -15,18 +15,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $status = 'pending';
 
     // If the current user is an admin, set status to approved
-    // In process_register.php, after retrieving $user_type
     if (isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'admin') {
-        // Restrict admins from creating other admins
-        if ($user_type == 'admin') {
-            die("Admins cannot create other admins.");
-        }
+        $status = 'approved';
     }
+
     // Prepare SQL statement
     $sql = "INSERT INTO users (username, email, password, user_type, school_id, department, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-
-    
 
     if ($stmt) {
         // Bind parameters
@@ -34,12 +29,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Execute the statement
         if ($stmt->execute()) {
-            if (isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'admin') {
-                header("Location: admin_user_management.php"); // Redirect admins to their dashboard
-            } else {
-                header("Location: login.php?success=1"); // Redirect public users to login
-            }
+            header("Location: register.php?success=1");
             exit();
+        } else {
+            echo "Error: " . $stmt->error;
         }
 
         // Close statement
@@ -47,13 +40,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         echo "Error preparing statement: " . $conn->error;
     }
- 
+
     // Close connection
     $conn->close();
 }
-
-$_SESSION['error'] = "Registration failed: " . $stmt->error;
-header("Location: register.php");
-exit();
-
 ?>

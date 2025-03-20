@@ -1,59 +1,80 @@
 <?php
 session_start();
-require_once 'config.php'; // Include the database connection
+require_once 'config.php';
 
-// Redirect to login if the user is not logged in
-if (!isset($_SESSION['user_id'])) {
+// Redirect to login if not admin
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header("Location: login.php");
     exit();
 }
 
+// Fetch approved users for attendee selection
+$users = [];
+$result = $conn->query("SELECT id, username, school_id, department FROM users WHERE status = 'approved'");
+if ($result) $users = $result->fetch_all(MYSQLI_ASSOC);
+
 $event_message = $attendee_message = "";
 
-// Determine dashboard link based on user type
-if ($_SESSION['user_type'] == 'admin') {
-    $dashboardLink = 'admin_dashboard.php';
-} elseif ($_SESSION['user_type'] == 'staff') {
-    $dashboardLink = 'staff_dashboard.php';
-} else {
-    $dashboardLink = 'user_dashboard.php';
-}
-
-// Handle event form submission
+// Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $event_name = trim($_POST['event_name']);
-    $event_date = $_POST['event_date'];
-    $event_time = $_POST['event_time'];
-    $venue = trim($_POST['venue']);
-    $event_description = trim($_POST['event_description']);
+    $conn->begin_transaction();
+    try {
+        // Event details
+        $event_name = trim($_POST['event_name']);
+        $event_date = $_POST['event_date'];
+        $event_time = $_POST['event_time'];
+        $venue = trim($_POST['venue']);
+        $event_description = trim($_POST['event_description']);
 
-    // Validate form inputs
-    if (!empty($event_name) && !empty($event_date) && !empty($event_time) && !empty($venue) && !empty($event_description)) {
-        $stmt = $conn->prepare("INSERT INTO events (event_name, event_date, event_time, venue, event_description) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssss", $event_name, $event_date, $event_time, $venue, $event_description);
-
-        if ($stmt->execute()) {
-            echo "<script>alert('Event added successfully!'); window.location.href='admin_Event Management.php';</script>";
-        } else {
-            echo "<script>alert('Error adding event: " . $conn->error . "');</script>";
+        // Validate inputs
+        if (empty($event_name) || empty($event_date) || empty($event_time) || empty($venue)) {
+            throw new Exception("All required fields must be filled");
         }
+
+        // Insert event
+        $stmt = $conn->prepare("INSERT INTO events 
+            (event_name, event_date, event_time, venue, event_description, status) 
+            VALUES (?, ?, ?, ?, ?, 'Approved')");
+        $stmt->bind_param("sssss", $event_name, $event_date, $event_time, $venue, $event_description);
+        
+        if (!$stmt->execute()) throw new Exception("Event creation failed: " . $stmt->error);
+        $event_id = $conn->insert_id;
         $stmt->close();
-    } else {
-        echo "<script>alert('Please fill in all fields.');</script>";
+
+        // Handle attendees
+        if (!empty($_POST['attendees'])) {
+            // Filter and validate user IDs
+            $attendees = array_filter($_POST['attendees'], 'is_numeric');
+            if (!empty($attendees)) {
+                // Create placeholders and parameters for bulk insert
+                $placeholders = rtrim(str_repeat('(?, ?), ', count($attendees)), ', ');
+                $types = str_repeat('ii', count($attendees));
+                $params = [];
+                foreach ($attendees as $user_id) {
+                    $params[] = $event_id;
+                    $params[] = $user_id;
+                }
+                
+                // Prepare and execute bulk insert
+                $stmt = $conn->prepare("INSERT INTO event_attendees (event_id, user_id) VALUES $placeholders");
+                if (!$stmt) throw new Exception("Prepare failed: " . $conn->error);
+                $stmt->bind_param($types, ...$params);
+                if (!$stmt->execute()) throw new Exception("Attendee insertion failed: " . $stmt->error);
+                $stmt->close();
+            }
+        }
+
+        $conn->commit();
+        echo "<script>
+            alert('Event and attendees added successfully!');
+            window.location.href='admin_Event Management.php';
+            </script>";
+    } catch (Exception $e) {
+        $conn->rollback();
+        $event_message = "<div class='alert alert-danger'>{$e->getMessage()}</div>";
     }
 }
-
-
-
-// Fetch events from the database
-$sql = "SELECT * FROM events";
-$result = $conn->query($sql);
-
-if (!$result) {
-    die("Query failed: " . $conn->error);
-}
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -63,30 +84,35 @@ if (!$result) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-
     <title>Event Management</title>
-
     <style>
-
         body {
             display: flex;
             background: #f4f4f4;
+            margin: 0;
+            font-family: Arial, sans-serif;
         }
+
         .sidebar {
             width: 260px;
             height: 100vh;
             background: linear-gradient(135deg, #293CB7, #1E2A78);
             padding-top: 20px;
             position: fixed;
+            top: 0;
+            left: 0;
             color: #ffffff;
             box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
         }
+
         .sidebar h4 {
             text-align: center;
             font-weight: bold;
             letter-spacing: 1px;
             margin-bottom: 20px;
         }
+
         .sidebar a {
             display: flex;
             align-items: center;
@@ -96,26 +122,35 @@ if (!$result) {
             font-size: 16px;
             transition: background 0.3s ease, border-left 0.3s ease;
         }
+
         .sidebar a i {
             margin-right: 10px;
             font-size: 18px;
         }
-        .sidebar a:hover, .sidebar a.active {
+
+        .sidebar a:hover, 
+        .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
             border-left: 5px solid #fff;
         }
+
         .content {
-            margin-left: 270px;
+            margin-left: 260px;
             padding: 20px;
-            width: 100%;
+            width: calc(100% - 260px);
         }
+
         .navbar {
             background-color: #ffffff;
             border-bottom: 2px solid #e0e0e0;
             padding: 15px;
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
+
         .event-header {
             display: flex;
             justify-content: space-between;
@@ -123,6 +158,7 @@ if (!$result) {
             margin-bottom: 30px;
             padding-top: 10px;
         }
+
         .event-form {
             display: none;
             width: 350px;
@@ -131,36 +167,54 @@ if (!$result) {
             border-radius: 8px;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             position: absolute;
-            top: 120px;
-            left: 280px;
+            top: 100px;
+            left: calc(50% - 175px); /* Centered form */
+            z-index: 20;
         }
+
+        .attendee-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .attendee-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .attendee-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        .attendee-box {
+            height: calc(100% - 30px);
+        }
+
     </style>
-
 </head>
-
-
 <body>
-
-    <div class="sidebar">
-        <h4>AU JAS</h4>
-        <a href="<?php echo $dashboardLink; ?>"><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="admin_Event Calendar.php"><i class="bi bi-calendar"></i> Event Calendar</a>
-        <a href="admin_Event Management.php" class="active"><i class="bi bi-gear"></i> Event Management</a>
-        <a href="admin_user management.php"><i class="bi bi-people"></i> User Management</a>
-        <a href="reports.php"><i class="bi bi-file-earmark-text"></i> Reports</a>
-    </div>
-
-
+    <?php include 'sidebar.php'; ?>
     <div class="content">
-        <nav class="navbar navbar-light">
+        <!-- ... (keep navbar unchanged) ... -->
+        <nav class="navbar navbar-light mb-4">
             <div class="container-fluid d-flex justify-content-between">
                 <span class="navbar-brand mb-0 h1">Event Management</span>
                 <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item">Role: <?= htmlspecialchars($_SESSION['user_type']) ?></span></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                     </ul>
@@ -168,63 +222,107 @@ if (!$result) {
             </div>
         </nav>
 
-        <div class="event-header">
-            <input type="text" class="form-control" placeholder="Search events..." style="width: 300px;">
-            <div>
-                <button class="btn btn-success">Months</button>
-                <button class="btn btn-success">All Events</button>
-                <button class="btn btn-warning">Pending Events</button>
-                <button class="btn btn-primary" onclick="location.href='admin_event form.php'">Add Event</button>
-
-            </div>
-        </div>
-
         <div class="container mt-5">
-        
-        <a href="admin_Event Management.php" class="btn btn-secondary mb-3">Back to Event Management</a>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card shadow-sm p-4">
-                    <h4 class="mb-3">Add New Event</h4>
-                    <?php echo $event_message; ?>
-
-                    <form method="POST">
-    <div class="mb-3">
-        <label class="form-label">Event Name</label>
-        <input type="text" class="form-control" name="event_name" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Event Date</label>
-        <input type="date" class="form-control" name="event_date" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Event Time</label>
-        <input type="time" class="form-control" name="event_time" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Venue</label>
-        <input type="text" class="form-control" name="venue" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Event Description</label>
-        <textarea class="form-control" name="event_description" rows="3" required></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary w-100">Add Event</button>
-</form>
-
-                </div>
-            </div>
+            <a href="admin_Event_management.php" class="btn btn-secondary mb-3">Back</a>
             
-            <div class="col-md-6">
-                <div class="card shadow-sm p-4">
-                    <h4 class="mb-3">Attendees Form</h4>
-                    <?php echo $attendee_message; ?>
+            <form method="POST">
+                <div class="row g-4">
+                    <!-- Left Column - Event Details -->
+                    <div class="col-lg-8">
+                        <div class="form-section card-style">
+                            <h4 class="mb-4"><i class="bi bi-calendar-event"></i> Event Details</h4>
+                            <?= $event_message ?>
+                            
+                            <div class="row g-3">
+                                <!-- Event input fields (keep unchanged) -->
+                                <!-- ... existing form fields ... -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Event Name</label>
+                                    <input type="text" class="form-control" name="event_name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Venue</label>
+                                    <input type="text" class="form-control" name="venue" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Event Date</label>
+                                    <input type="date" class="form-control" name="event_date" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Event Time</label>
+                                    <input type="time" class="form-control" name="event_time" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" name="event_description" rows="3" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Attendees -->
+                    <div class="col-lg-4">
+                        <div class="form-section card-style h-100 d-flex flex-column">
+                            <h4 class="mb-4"><i class="bi bi-people-fill"></i> Manage Attendees</h4>
+                            
+                            <div class="flex-grow-1">
+                                <div class="input-group mb-3">
+                                    <select class="form-select" id="userSelect">
+                                        <?php foreach ($users as $user): ?>
+                                            <option value="<?= $user['id'] ?>">
+                                                <?= htmlspecialchars($user['username']) ?> (<?= $user['school_id'] ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button" class="btn btn-primary" onclick="addAttendee()">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="attendee-list">
+                                    <h5>Selected Attendees</h5>
+                                    <div id="attendeesContainer" class="mt-2">
+                                        <!-- Dynamic attendees -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-lg w-100 mt-3">
+                                <i class="bi bi-check-circle"></i> Create Event
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                
-                
-    
-        
+            </form>
+        </div>
     </div>
+
+    <!-- Keep JavaScript unchanged -->
+    <script>
+    function addAttendee() {
+        const select = document.getElementById('userSelect');
+        const user = select.options[select.selectedIndex];
+        const container = document.getElementById('attendeesContainer');
+
+        // Check if user already added
+        const existing = Array.from(container.querySelectorAll('input'))
+            .some(input => input.value === user.value);
+        
+        if (!existing) {
+            const div = document.createElement('div');
+            div.className = 'attendee-item d-flex justify-content-between align-items-center p-2 mb-2 rounded';
+            div.innerHTML = `
+                <div>
+                    ${user.textContent.split(' (')[0]}
+                    <input type="hidden" name="attendees[]" value="${user.value}">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+    }
+    </script>
 </body>
 </html>
