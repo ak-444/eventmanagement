@@ -223,7 +223,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </nav>
 
         <div class="container mt-5">
-            <a href="admin_Event_management.php" class="btn btn-secondary mb-3">Back</a>
+            <a href="admin_Event Management.php" class="btn btn-secondary mb-3">Back</a>
             
             <form method="POST">
                 <div class="row g-4">
