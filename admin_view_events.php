@@ -41,6 +41,7 @@ try {
 } catch (Exception $e) {
     error_log("Attendee fetch error: " . $e->getMessage());
 }
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>

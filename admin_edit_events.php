@@ -149,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "Error updating event: " . $e->getMessage();
     }
 }
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>

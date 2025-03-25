@@ -27,6 +27,7 @@ if (isset($_GET['decline_id'])) {
 
 // Determine dashboard link (same as previous files)
 $current_page = basename($_SERVER['PHP_SELF']);
+include 'sidebar.php';
 // ... [include the same dashboard link logic from admin_user management.php] ...
 ?>
 
@@ -132,27 +133,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </style>
 </head>
 <body>
+<?php include 'sidebar.php'; ?>
 
-
-    <!-- Same sidebar structure as admin_user management.php -->
-    <div class="sidebar">
-    <h4>AU JAS</h4>
-    <a href="<?= $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
-        <i class="bi bi-house-door"></i> Dashboard
-    </a>
-    <a href="admin_Event Calendar.php" class="<?= ($current_page == 'admin_Event Calendar.php') ? 'active' : ''; ?>">
-        <i class="bi bi-calendar"></i> Event Calendar
-    </a>
-    <a href="admin_Event Management.php" class="<?= ($current_page == 'admin_Event Management.php') ? 'active' : ''; ?>">
-        <i class="bi bi-gear"></i> Event Management
-    </a>
-    <a href="admin_user management.php" class="<?= ($current_page == 'admin_user management.php') ? 'active' : ''; ?>">
-        <i class="bi bi-people"></i> User Management
-    </a>
-    <a href="reports.php" class="<?= ($current_page == 'reports.php') ? 'active' : ''; ?>">
-        <i class="bi bi-file-earmark-text"></i> Reports
-    </a>
-</div>
 
     <div class="content">
         <!-- Same navbar structure as admin_user management.php -->

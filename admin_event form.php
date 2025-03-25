@@ -74,6 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $event_message = "<div class='alert alert-danger'>{$e->getMessage()}</div>";
     }
 }
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>
@@ -90,7 +91,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: flex;
             background: #f4f4f4;
             margin: 0;
-            font-family: Arial, sans-serif;
+           
         }
 
         .sidebar {
@@ -99,20 +100,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background: linear-gradient(135deg, #293CB7, #1E2A78);
             padding-top: 20px;
             position: fixed;
-            top: 0;
-            left: 0;
             color: #ffffff;
             box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
         }
-
         .sidebar h4 {
             text-align: center;
             font-weight: bold;
             letter-spacing: 1px;
             margin-bottom: 20px;
         }
-
         .sidebar a {
             display: flex;
             align-items: center;
@@ -122,17 +118,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-size: 16px;
             transition: background 0.3s ease, border-left 0.3s ease;
         }
-
         .sidebar a i {
             margin-right: 10px;
             font-size: 18px;
         }
-
         .sidebar a:hover, 
         .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
             border-left: 5px solid #fff;
         }
+
+        
 
         .content {
             margin-left: 260px;
@@ -223,7 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </nav>
 
         <div class="container mt-5">
-            <a href="admin_Event Management.php" class="btn btn-secondary mb-3">Back</a>
+    
             
             <form method="POST">
                 <div class="row g-4">

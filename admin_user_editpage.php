@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
     }
 }
+include 'sidebar.php';
 
 $conn->close();
 ?>
@@ -78,7 +79,14 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit User</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
     <style>
+        body {
+            display: flex;
+            background: #f4f4f4;
+        }
         .container {
             max-width: 800px;
             margin: 20px auto;
@@ -90,15 +98,58 @@ $conn->close();
         .form-group {
             margin-bottom: 1.5rem;
         }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(135deg, #293CB7, #1E2A78);
+            padding-top: 20px;
+            position: fixed;
+            color: #ffffff;
+            box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+        .sidebar h4 {
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #f0f0f0;
+            font-size: 16px;
+            transition: background 0.3s ease, border-left 0.3s ease;
+        }
+        .sidebar a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        .sidebar a:hover, 
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 5px solid #fff;
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px;
+            width: 100%;
+        }
+        .navbar {
+            background-color: #ffffff;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 15px;
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
 <?php include 'sidebar.php'; ?>
 
 <div class="content">
-    <nav class="navbar navbar-light">
-        <!-- Same navbar as in user management page -->
-        <nav class="navbar navbar-light">
+<nav class="navbar navbar-light">
         <div class="container-fluid d-flex justify-content-between">
             <span class="navbar-brand mb-0 h1">User Management</span>
             <div class="dropdown">
@@ -113,7 +164,7 @@ $conn->close();
             </div>
         </div>
     </nav>
-    </nav>
+        
 
     <div class="container">
         <h2 class="mb-4">Edit User</h2>
