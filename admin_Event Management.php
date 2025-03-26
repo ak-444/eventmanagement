@@ -165,6 +165,16 @@ include 'sidebar.php';
             </div>
         </nav>
 
+        <?php if (isset($_SESSION['success'])): ?>
+<div class="container mt-3">
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?= $_SESSION['success'] ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+<?php unset($_SESSION['success']); endif; ?>
+    
+
         <div class="event-header">
             <div class="d-flex align-items-center">
                 <input type="text" class="form-control search-bar" placeholder="Search events...">

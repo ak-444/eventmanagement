@@ -109,11 +109,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
         }
 
         .btn-action {
-            width: 34px;
-            height: 34px;
+            padding: 5px 10px;
+            font-size: 14px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 0.2rem; /* Add this line */
         }
 
         @media (max-width: 768px) {
@@ -192,12 +193,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             </td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <a href="?view_id=<?= $row['id'] ?>" class="btn btn-info btn-action text-white">
-                                        <i class="bi bi-eye"></i>
+                                    <a href="staff_event_view.php?id=<?= $row['id'] ?>" class="btn btn-info btn-action text-white">
+                                        <i class="bi bi-eye"></i> View
                                     </a>
                                     <?php if ($row['status'] == 'Pending'): ?>
                                     <a href="?edit_id=<?= $row['id'] ?>" class="btn btn-warning btn-action text-white">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="bi bi-pencil"></i> Edit
                                     </a>
                                     <?php endif; ?>
                                 </div>

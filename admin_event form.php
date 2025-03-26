@@ -65,10 +65,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         $conn->commit();
-        echo "<script>
-            alert('Event and attendees added successfully!');
-            window.location.href='admin_Event Management.php';
-            </script>";
+        $_SESSION['success'] = "Event and attendees added successfully!"; // Changed from 'event_success'
+        header("Location: admin_Event Management.php");
+        exit();
     } catch (Exception $e) {
         $conn->rollback();
         $event_message = "<div class='alert alert-danger'>{$e->getMessage()}</div>";
@@ -217,6 +216,16 @@ include 'sidebar.php';
                 </div>
             </div>
         </nav>
+
+        <?php if (isset($_SESSION['form_errors'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= $_SESSION['form_errors'] ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php unset($_SESSION['form_errors']); endif; ?>
+                
 
         <div class="container mt-5">
     

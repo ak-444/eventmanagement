@@ -134,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             $conn->commit();
+            $_SESSION['success'] = "Event updated successfully!"; // Add this line
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
@@ -259,6 +260,24 @@ include 'sidebar.php';
                 </div>
             </div>
         </nav>
+        
+        <?php if (isset($_SESSION['success'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= $_SESSION['success'] ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php unset($_SESSION['success']); endif; ?>
+
+        <?php if (isset($error_message)): ?>
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= $error_message ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <div class="container-fluid">
             <form method="POST">

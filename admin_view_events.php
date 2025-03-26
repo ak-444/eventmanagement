@@ -29,10 +29,10 @@ if (!$event) {
 // Fetch attendees with proper error handling
 $attendees = [];
 try {
-    $stmt = $conn->prepare("SELECT u.username, u.school_id, u.department 
-                           FROM event_attendees ea
-                           JOIN users u ON ea.user_id = u.id
-                           WHERE ea.event_id = ?");
+    $stmt = $conn->prepare("SELECT u.username, u.school_id, u.department, ea.attended 
+                       FROM event_attendees ea
+                       JOIN users u ON ea.user_id = u.id
+                       WHERE ea.event_id = ?");
     $stmt->bind_param("i", $event_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -138,31 +138,54 @@ include 'sidebar.php';
             </div>
         </nav>
 
+        <?php if (isset($_SESSION['success'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= $_SESSION['success'] ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        <?php unset($_SESSION['success']); endif; ?>
+
         <div class="container">
         <div class="event-header mb-4">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h2><?= htmlspecialchars($event['event_name']) ?></h2>
-                <div class="row mt-4">
-                    <div class="col-md-4">
-                        <p><strong>Date:</strong> <?= date('F j, Y', strtotime($event['event_date'])) ?></p>
-                    </div>
-                    <div class="col-md-4">
-                        <p><strong>Time:</strong> <?= date('g:i A', strtotime($event['event_time'])) ?></p>
-                    </div>
-                    <div class="col-md-4">
-                        <p><strong>Venue:</strong> <?= htmlspecialchars($event['venue']) ?></p>
-                    </div>
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h2><?= htmlspecialchars($event['event_name']) ?></h2>
+                </div>
+                <a href="admin_edit_events.php?id=<?= $event_id ?>" class="btn btn-warning">
+                    <i class="bi bi-pencil-square"></i> Edit Event
+                </a>
+            </div>
+
+            <!-- Attendance Summary -->
+            <div class="mb-4">
+                <p class="mb-2"><strong>Attendance Summary:</strong></p>
+                <div class="d-flex gap-3">
+                    <span class="badge bg-success">Present: <?= array_sum(array_column($attendees, 'attended')) ?></span>
+                    <span class="badge bg-danger">Absent: <?= count($attendees) - array_sum(array_column($attendees, 'attended')) ?></span>
                 </div>
             </div>
-            <a href="admin_edit_events.php?id=<?= $event_id ?>" class="btn btn-warning">
-                <i class="bi bi-pencil-square"></i> Edit Event
-            </a>
+
+            <!-- Event Details -->
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <p><strong>Date:</strong> <?= date('F j, Y', strtotime($event['event_date'])) ?></p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Time:</strong> <?= date('g:i A', strtotime($event['event_time'])) ?></p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Venue:</strong> <?= htmlspecialchars($event['venue']) ?></p>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mt-3">
+                <p><strong>Description:</strong></p>
+                <p><?= nl2br(htmlspecialchars($event['event_description'])) ?></p>
+            </div>
         </div>
-        <div class="mt-3">
-            <p><strong>Description:</strong><br><?= nl2br(htmlspecialchars($event['event_description'])) ?></p>
-        </div>
-    </div>
 
             <div class="attendee-table p-4">
                 <h4>Attendees</h4>
@@ -172,6 +195,7 @@ include 'sidebar.php';
                             <th>Name</th>
                             <th>Student ID</th>
                             <th>Department</th>
+                            <th>Attendance Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,6 +204,11 @@ include 'sidebar.php';
                                 <td><?= htmlspecialchars($attendee['username']) ?></td>
                                 <td><?= htmlspecialchars($attendee['school_id']) ?></td>
                                 <td><?= htmlspecialchars($attendee['department']) ?></td>
+                                <td>
+                                    <span class="badge bg-<?= $attendee['attended'] ? 'success' : 'danger' ?>">
+                                        <?= $attendee['attended'] ? 'Present' : 'Absent' ?>
+                                    </span>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
