@@ -8,31 +8,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     exit();
 }
 
-// Initialize variables
-$error = '';
-$success = '';
-$user = [];
-
 // Get user ID from URL
-if (isset($_GET['edit_id'])) {
-    $user_id = intval($_GET['edit_id']);
-    
-    // Fetch user data
-    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows === 1) {
-        $user = $result->fetch_assoc();
-    } else {
-        $error = "User not found";
-    }
-    $stmt->close();
-} else {
+if (!isset($_GET['edit_id'])) {
     header("Location: admin_user_management.php");
     exit();
 }
+$user_id = intval($_GET['edit_id']);
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,30 +26,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate input
     if (empty($username) || empty($email) || empty($user_type)) {
-        $error = "Please fill in all required fields";
+        $_SESSION['error'] = "Please fill in all required fields";
     } else {
         // Update user in database
         $stmt = $conn->prepare("UPDATE users SET username = ?, email = ?, user_type = ?, department = ?, school_id = ? WHERE id = ?");
         $stmt->bind_param("sssssi", $username, $email, $user_type, $department, $school_id, $user_id);
         
         if ($stmt->execute()) {
-            $success = "User updated successfully";
-            // Refresh user data
-            $user = array_merge($user, [
-                'username' => $username,
-                'email' => $email,
-                'user_type' => $user_type,
-                'department' => $department,
-                'school_id' => $school_id
-            ]);
+            $_SESSION['success'] = "User updated successfully";
         } else {
-            $error = "Error updating user: " . $stmt->error;
+            $_SESSION['error'] = "Error updating user: " . $stmt->error;
         }
         $stmt->close();
     }
+    // Redirect to avoid resubmission
+    header("Location: admin_user_editpage.php?edit_id=" . $user_id);
+    exit();
 }
-include 'sidebar.php';
 
+// Fetch user data after potential update
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();
+
+include 'sidebar.php';
 $conn->close();
 ?>
 
@@ -87,13 +71,21 @@ $conn->close();
             display: flex;
             background: #f4f4f4;
         }
+
         .container {
-            max-width: 800px;
-            margin: 20px auto;
+            margin-top: 1.5rem; /* Additional spacing insurance */
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px;
+            width: calc(100% - 270px);
+        }
+        .card {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 1rem;
         }
         .form-group {
             margin-bottom: 1.5rem;
@@ -165,60 +157,65 @@ $conn->close();
         </div>
     </nav>
         
+    <div class="container mt-4"> 
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm p-4">
+                    <h2 class="mb-4">Edit User</h2>
+                    
+                    <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+                    <?php unset($_SESSION['error']); endif; ?>
+                    
+                    <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
+                    <?php unset($_SESSION['success']); endif; ?>
 
-    <div class="container">
-        <h2 class="mb-4">Edit User</h2>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-danger"><?= $error ?></div>
-        <?php endif; ?>
-        
-        <?php if ($success): ?>
-            <div class="alert alert-success"><?= $success ?></div>
-        <?php endif; ?>
+                    <form method="POST">
+                        <!-- Keep existing form fields -->
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" class="form-control" 
+                                value="<?= htmlspecialchars($user['username']) ?>" required>
+                        </div>
 
-        <form method="POST">
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" class="form-control" 
-                       value="<?= htmlspecialchars($user['username']) ?>" required>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" class="form-control"
+                                value="<?= htmlspecialchars($user['email']) ?>" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>User Type</label>
+                            <select name="user_type" class="form-select" required>
+                                <option value="admin" <?= $user['user_type'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                <option value="staff" <?= $user['user_type'] === 'staff' ? 'selected' : '' ?>>Staff</option>
+                                <option value="user" <?= $user['user_type'] === 'user' ? 'selected' : '' ?>>User</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" name="department" class="form-control"
+                                value="<?= htmlspecialchars($user['department']) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label>School ID</label>
+                            <input type="text" name="school_id" class="form-control"
+                                value="<?= htmlspecialchars($user['school_id']) ?>">
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" class="btn btn-primary">Update User</button>
+                            <a href="admin_user management.php" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" class="form-control"
-                       value="<?= htmlspecialchars($user['email']) ?>" required>
-            </div>
-
-            <div class="form-group">
-                <label>User Type</label>
-                <select name="user_type" class="form-select" required>
-                    <option value="admin" <?= $user['user_type'] === 'admin' ? 'selected' : '' ?>>Admin</option>
-                    <option value="staff" <?= $user['user_type'] === 'staff' ? 'selected' : '' ?>>Staff</option>
-                    <option value="user" <?= $user['user_type'] === 'user' ? 'selected' : '' ?>>User</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Department</label>
-                <input type="text" name="department" class="form-control"
-                       value="<?= htmlspecialchars($user['department']) ?>">
-            </div>
-
-            <div class="form-group">
-                <label>School ID</label>
-                <input type="text" name="school_id" class="form-control"
-                       value="<?= htmlspecialchars($user['school_id']) ?>">
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-                <button type="submit" class="btn btn-primary">Update User</button>
-                <a href="admin_user management.php" class="btn btn-secondary">Cancel</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

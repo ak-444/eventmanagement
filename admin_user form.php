@@ -1,16 +1,9 @@
 <?php
 session_start();
 require_once 'config.php';
-$current_page = basename($_SERVER['PHP_SELF']);
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
 
-// ... [existing dashboard link code] ...
-
-// Handle user form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve form data
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $user_type = trim($_POST['user_type']);
@@ -18,28 +11,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $school_id = trim($_POST['school_id']);
     $password = trim($_POST['password']);
     
-    if (!empty($name) && !empty($email) && !empty($user_type) && 
-        !empty($department) && !empty($school_id) && !empty($password)) {
-        
-        // Hash the password
-        $password_hash = password_hash($password, PASSWORD_BCRYPT);
-        
-        $stmt = $conn->prepare("INSERT INTO users (username, email, user_type, department, school_id, password) 
-                              VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $name, $email, $user_type, $department, $school_id, $password_hash);
+    // Set status based on admin session
+    $status = (isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'admin') ? 'approved' : 'pending';
+    
+    // Hash password
+    $password_hash = password_hash($password, PASSWORD_BCRYPT);
+    
+    // Prepare SQL (include status)
+    $stmt = $conn->prepare("INSERT INTO users (username, email, user_type, department, school_id, password, status) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $name, $email, $user_type, $department, $school_id, $password_hash, $status);
 
-        if ($stmt->execute()) {
-            echo "<script>alert('User added successfully!'); window.location.href='admin_user management.php';</script>";
-        } else {
-            echo "<script>alert('Error adding user: " . $conn->error . "');</script>";
-        }
-        $stmt->close();
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "User added successfully!";       
     } else {
-        echo "<script>alert('Please fill in all required fields.');</script>";
+        $_SESSION['error'] = "Error: " . $conn->error;
     }
+    $stmt->close();
+    $conn->close();
 }
+include 'sidebar.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -127,25 +119,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
    <!-- Sidebar -->
-<div class="sidebar">
-    <h4>AU JAS</h4>
-    <a href="<?= $dashboardLink; ?>" class="<?= ($current_page == basename($dashboardLink)) ? 'active' : ''; ?>">
-        <i class="bi bi-house-door"></i> Dashboard
-    </a>
-    <a href="admin_Event Calendar.php" class="<?= ($current_page == 'admin_Event Calendar.php') ? 'active' : ''; ?>">
-        <i class="bi bi-calendar"></i> Event Calendar
-    </a>
-    <a href="admin_Event Management.php" class="<?= ($current_page == 'admin_Event Management.php') ? 'active' : ''; ?>">
-        <i class="bi bi-gear"></i> Event Management
-    </a>
-    <a href="admin_user management.php" class="<?= ($current_page == 'admin_user management.php' || $current_page == 'admin_user form.php') ? 'active' : ''; ?>">
-    <i class="bi bi-people"></i> User Management
-    </a>
-    <a href="reports.php" class="<?= ($current_page == 'reports.php') ? 'active' : ''; ?>">
-        <i class="bi bi-file-earmark-text"></i> Reports
-    </a>
-</div>
-
+   <?php include 'sidebar.php'; ?>
 
     <div class="content">
         <nav class="navbar navbar-light">
@@ -164,23 +138,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </nav>
 
-        <div class="event-header">
-            <input type="text" class="form-control" placeholder="Search events..." style="width: 300px;">
-            <div>
-            <button class="btn btn-success">Users</button>
-                <button class="btn btn-warning">Pending Users</button>
-                <button class="btn btn-primary" onclick="location.href='admin_user form.php'">Add User</button>
-
-            </div>
-        </div>
 
         <div class="container mt-5">
-        <a href="admin_user management.php" class="btn btn-secondary mb-3">Back to User Management</a>
+        <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+        <?php unset($_SESSION['error']); endif; ?>
+
+        <?php if (isset($_SESSION['success'])): ?>
+        <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
+        <?php unset($_SESSION['success']); endif; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card shadow-sm p-4">
                     <h2 class="mb-4">Add New User</h2>
                     <form method="POST">
+                        <!-- Keep existing form fields -->
                         <div class="mb-3">
                             <label class="form-label">Full Name</label>
                             <input type="text" class="form-control" name="name" required>
@@ -213,13 +186,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <label class="form-label">School ID</label>
                             <input type="text" class="form-control" name="school_id" required>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Add User</button>
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" class="btn btn-primary">Add User</button>
+                            <a href="admin_user management.php" class="btn btn-secondary">Cancel</a>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-
+</div>
 
 
 </body>

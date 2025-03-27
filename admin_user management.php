@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once 'config.php'; // Include the database connection
-
 // Redirect to login if the user is not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -16,6 +15,28 @@ if ($_SESSION['user_type'] == 'admin') {
 } else {
     $dashboardLink = 'user_dashboard.php';
 }
+
+if (isset($_GET['delete_id'])) {
+    $userId = (int)$_GET['delete_id'];
+    
+    try {
+        $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->bind_param("i", $userId);
+        
+        if ($stmt->execute()) {
+            $_SESSION['success'] = "User deleted successfully!";
+        } else {
+            $_SESSION['error'] = "Error deleting user: " . $conn->error;
+        }
+        $stmt->close();
+    } catch (Exception $e) {
+        $_SESSION['error'] = "Error: " . $e->getMessage();
+    }
+    // Redirect back to prevent refresh issues
+    header("Location: admin_user management.php");
+    exit();
+}
+
 
 // Get the current filename to determine the active page
 $current_page = basename($_SERVER['PHP_SELF']);
@@ -89,7 +110,27 @@ include 'sidebar.php';
             margin-bottom: 30px;
             padding-top: 10px;
         }
-    </style>
+        .search-bar-container {
+            width: 300px;
+            margin-right: 15px; /* Spacing between search and buttons */
+        }
+
+        .search-bar-container .form-control {
+            border-radius: 20px;
+            padding: 8px 15px;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar-container .form-control:focus {
+            border-color: #293CB7;
+            box-shadow: 0 0 0 3px rgba(41, 60, 183, 0.1);
+        }
+        .table thead th {
+            background-color: #f8f9fa;
+            font-weight: 600; /* Add this line to make headers bold */
+        }
+        </style>
 </head>
 
 <body>
@@ -115,8 +156,24 @@ include 'sidebar.php';
         </div>
     </nav>
 
+    <?php if (isset($_SESSION['error'])): ?>
+    <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3">
+        <?= $_SESSION['error'] ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php unset($_SESSION['error']); endif; ?>
+
+    <?php if (isset($_SESSION['success'])): ?>
+    <div class="alert alert-success alert-dismissible fade show mx-3 mt-3">
+        <?= $_SESSION['success'] ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php unset($_SESSION['success']); endif; ?>
+
     <div class="event-header">
-        <input type="text" class="form-control" placeholder="Search users..." style="width: 300px;">
+    <div class="search-bar-container">
+        <input type="text" class="form-control" placeholder="Search users...">
+    </div>
         <div>
             <button class="btn btn-success">Users</button>
             <button class="btn btn-warning" onclick="location.href='admin_pending_users.php'">Pending Users</button>

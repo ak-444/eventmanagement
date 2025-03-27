@@ -101,6 +101,22 @@ include 'sidebar.php';
             border: 1px solid rgba(0,0,0,.15);
             box-shadow: 0 2px 8px rgba(0,0,0,.1);
         }
+        .search-bar-container {
+            width: 300px;
+            margin-right: 15px; /* Spacing between search and buttons */
+        }
+
+        .search-bar-container .form-control {
+            border-radius: 20px;
+            padding: 8px 15px;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar-container .form-control:focus {
+            border-color: #293CB7;
+            box-shadow: 0 0 0 3px rgba(41, 60, 183, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -125,7 +141,9 @@ include 'sidebar.php';
 
         <div class="event-header">
             <div class="d-flex align-items-center">
-                <input type="text" class="form-control search-bar" placeholder="Search questionnaires...">
+            <div class="search-bar-container">
+                <input type="text" class="form-control" placeholder="Search questionnaires...">
+            </div>
             </div>
             <div class="button-group">
                 <button class="btn btn-primary" onclick="location.href='add_questionnaire.php'">Add Questionnaire</button>
@@ -148,15 +166,21 @@ include 'sidebar.php';
 <tbody>
     <?php
     // Fetch all questionnaires with event information and question count
-    $sql = "SELECT q.id, q.title, q.description, q.created_at, e.event_name, 
-        COUNT(qu.id) AS question_count
+    $sql = "SELECT 
+            q.id, 
+            q.title, 
+            q.description, 
+            q.created_at, 
+            e.event_name,
+            COUNT(qu.id) AS question_count
         FROM questionnaires q
-        JOIN events e ON q.event_id = e.id
+        LEFT JOIN events e ON q.event_id = e.id
         LEFT JOIN questions qu ON q.id = qu.questionnaire_id
         GROUP BY q.id
         ORDER BY q.created_at DESC";
-    
-    $result = $conn->query($sql);
+
+$result = $conn->query($sql);
+
     
     if ($result && $result->num_rows > 0) {
         $counter = 1;

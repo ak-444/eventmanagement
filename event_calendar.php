@@ -152,6 +152,23 @@ include 'sidebar.php';
             letter-spacing: 0.5px;
             color: #1E2A78;
         }
+
+        .search-bar-container {
+            width: 300px;
+            margin-right: 15px; /* Spacing between search and buttons */
+        }
+
+        .search-bar-container .form-control {
+            border-radius: 20px;
+            padding: 8px 15px;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar-container .form-control:focus {
+            border-color: #293CB7;
+            box-shadow: 0 0 0 3px rgba(41, 60, 183, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -183,7 +200,9 @@ include 'sidebar.php';
         <div class="calendar-tools">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex gap-2">
-                    <input type="text" class="form-control" placeholder="Search events..." style="width: 300px">
+                <div class="search-bar-container">
+                    <input type="text" class="form-control" placeholder="Search events...">
+                </div>
                     <?php if($_SESSION['user_type'] == 'admin'): ?>
                     <button class="btn btn-primary" onclick="location.href='admin_event form.php'">
                         <i class="bi bi-plus-lg"></i> Add Event
