@@ -58,16 +58,16 @@ if ($selected_event_id > 0) {
     <title>Event Reports</title>
     <style>
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #4895ef;
-            --background-color: #f8f9fa;
+            --primary-color: #293CB7;
+            --secondary-color: #1E2A78;
+            --accent-color: #4CC9F0;
+            --background-color: #f4f4f4;
             --card-bg: #ffffff;
             --text-color: #333333;
-            --border-radius: 12px;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius: 10px;
+            --box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        
+
         body {
             display: flex;
             background: var(--background-color);
@@ -76,51 +76,43 @@ if ($selected_event_id > 0) {
         }
         
         .sidebar {
-            width: 280px;
+            width: 260px;
             height: 100vh;
-            background: linear-gradient(145deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, #293CB7, #1E2A78);
             padding-top: 20px;
             position: fixed;
             color: #ffffff;
-            box-shadow: var(--box-shadow);
-            z-index: 1030;
+            box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.2);
         }
-        
         .sidebar h4 {
             text-align: center;
-            font-weight: 600;
+            font-weight: bold;
             letter-spacing: 1px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
-        
         .sidebar a {
             display: flex;
             align-items: center;
-            padding: 15px 25px;
+            padding: 15px 20px;
             text-decoration: none;
-            color: rgba(255, 255, 255, 0.85);
+            color: #f0f0f0;
             font-size: 16px;
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            margin: 8px 15px;
+            transition: background 0.3s ease, border-left 0.3s ease;
         }
-        
         .sidebar a i {
-            margin-right: 12px;
-            font-size: 20px;
+            margin-right: 10px;
+            font-size: 18px;
         }
-        
-        .sidebar a:hover, 
-        .sidebar a.active {
+        .sidebar a:hover, .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            transform: translateX(5px);
+            border-left: 5px solid #fff;
         }
+
         
         .content {
-            margin-left: 300px;
-            padding: 30px;
-            width: 100%;
+            margin-left: 280px; /* Changed from 300px to match sidebar width + padding */
+            padding: 20px;
+            width: calc(100% - 280px); /* Ensures proper width calculation */
         }
         
         .navbar {
@@ -164,7 +156,9 @@ if ($selected_event_id > 0) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
         }
         
         .card {
@@ -188,27 +182,37 @@ if ($selected_event_id > 0) {
         }
         
         .card-body {
-            padding: 20px;
+            padding: 15px 20px; 
         }
         
         .form-control {
             border-radius: var(--border-radius);
-            padding: 12px 16px;
+            padding: 6px 12px;
             border: 1px solid rgba(0,0,0,0.1);
             box-shadow: none;
+            height: 38px; 
+            min-width: 250px;
         }
         
         .form-control:focus {
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
             border-color: var(--primary-color);
         }
-        
-        .btn {
-            border-radius: var(--border-radius);
-            padding: 10px 20px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+
+        .d-flex.gap-3 {
+            gap: 1rem !important;
         }
+                
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 38px;
+            padding: 0 15px;
+            
+        }
+
+       
         
         .btn-primary {
             background-color: var(--primary-color);
@@ -233,7 +237,8 @@ if ($selected_event_id > 0) {
         }
         
         .btn i {
-            margin-right: 8px;
+            font-size: 16px; /* Reduced icon size */
+            margin-right: 6px; /* Reduced icon spacing */
         }
         
         .table {
@@ -251,6 +256,10 @@ if ($selected_event_id > 0) {
         .table td {
             padding: 16px;
             vertical-align: middle;
+        }
+
+        .d-flex.align-items-center {
+            gap: 8px; /* Reduced spacing between elements */
         }
         
         .table-striped tbody tr:nth-of-type(odd) {
@@ -449,9 +458,9 @@ if ($selected_event_id > 0) {
         <div class="card mb-4">
             <div class="card-body">
                 <div class="event-header">
-                    <div class="d-flex align-items-center">
-                        <form method="get" action="admin_reports.php" class="d-flex">
-                            <select class="form-control me-3" name="event_id" id="event_id">
+                    <div class="d-flex align-items-center gap-3">
+                        <form method="get" action="admin_reports.php" class="d-flex align-items-center gap-2">
+                            <select class="form-control" name="event_id" id="event_id" style="height: 38px;">
                                 <option value="0">-- Select Event --</option>
                                 <?php foreach ($events as $event): ?>
                                     <option value="<?= $event['id'] ?>" <?= ($selected_event_id == $event['id']) ? 'selected' : '' ?>>
@@ -459,13 +468,14 @@ if ($selected_event_id > 0) {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <button type="submit" class="btn btn-primary me-2">
-                                <i class="bi bi-search"></i> Load Report
+                            <button type="submit" class="btn btn-primary" 
+                                    style="height: 38px; width: 200px;">
+                            <i class="bi bi-search"></i> Load Report
                             </button>
                         </form>
                     </div>
                     <div class="button-group">
-                        <button class="btn btn-primary" onclick="printReport()">
+                        <button class="btn btn-primary" onclick="printReport()" style="height: 38px;">
                             <i class="bi bi-printer"></i> Print Report
                         </button>
                     </div>
