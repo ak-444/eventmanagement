@@ -86,6 +86,8 @@ $conn->close();
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             margin-top: 1rem;
+            max-width: 100%;
+            margin: 20px 0;
         }
         .form-group {
             margin-bottom: 1.5rem;
@@ -135,6 +137,16 @@ $conn->close();
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
         }
+
+        .form-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Keep existing styles, add these modifications */
+    
+
+    
     </style>
 </head>
 <body>
@@ -157,64 +169,66 @@ $conn->close();
         </div>
     </nav>
         
-    <div class="container mt-4"> 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card shadow-sm p-4">
-                    <h2 class="mb-4">Edit User</h2>
-                    
-                    <?php if (isset($_SESSION['error'])): ?>
-                    <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
-                    <?php unset($_SESSION['error']); endif; ?>
-                    
-                    <?php if (isset($_SESSION['success'])): ?>
-                    <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
-                    <?php unset($_SESSION['success']); endif; ?>
+    <div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="form-container"> <!-- Add form-container div -->
+            <div class="card shadow-sm p-4">
+            <h2 class="mb-4"><i class="bi bi-pencil-square"></i> Edit User</h2>
+                
+                <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+                <?php unset($_SESSION['error']); endif; ?>
+                
+                <?php if (isset($_SESSION['success'])): ?>
+                <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
+                <?php unset($_SESSION['success']); endif; ?>
 
-                    <form method="POST">
-                        <!-- Keep existing form fields -->
-                        <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" name="username" class="form-control" 
-                                value="<?= htmlspecialchars($user['username']) ?>" required>
-                        </div>
+                <form method="POST">
+                    <!-- Existing form fields remain the same -->
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" class="form-control" 
+                            value="<?= htmlspecialchars($user['username']) ?>" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" name="email" class="form-control"
-                                value="<?= htmlspecialchars($user['email']) ?>" required>
-                        </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control"
+                            value="<?= htmlspecialchars($user['email']) ?>" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label>User Type</label>
-                            <select name="user_type" class="form-select" required>
-                                <option value="admin" <?= $user['user_type'] === 'admin' ? 'selected' : '' ?>>Admin</option>
-                                <option value="staff" <?= $user['user_type'] === 'staff' ? 'selected' : '' ?>>Staff</option>
-                                <option value="user" <?= $user['user_type'] === 'user' ? 'selected' : '' ?>>User</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select name="user_type" class="form-select" required>
+                            <option value="admin" <?= $user['user_type'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                            <option value="staff" <?= $user['user_type'] === 'staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="user" <?= $user['user_type'] === 'user' ? 'selected' : '' ?>>User</option>
+                        </select>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Department</label>
-                            <input type="text" name="department" class="form-control"
-                                value="<?= htmlspecialchars($user['department']) ?>">
-                        </div>
+                    <div class="form-group">
+                        <label>Department</label>
+                        <input type="text" name="department" class="form-control"
+                            value="<?= htmlspecialchars($user['department']) ?>">
+                    </div>
 
-                        <div class="form-group">
-                            <label>School ID</label>
-                            <input type="text" name="school_id" class="form-control"
-                                value="<?= htmlspecialchars($user['school_id']) ?>">
-                        </div>
+                    <div class="form-group">
+                        <label>School ID</label>
+                        <input type="text" name="school_id" class="form-control"
+                            value="<?= htmlspecialchars($user['school_id']) ?>">
+                    </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="submit" class="btn btn-primary">Update User</button>
-                            <a href="admin_user management.php" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="admin_user management.php" class="btn btn-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                             Update User
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 </body>

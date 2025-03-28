@@ -45,9 +45,30 @@ include 'sidebar.php';
 
     <style>
 
-        body {
+body {
             display: flex;
             background: #f4f4f4;
+        }
+
+        .container {
+            margin-top: 1.5rem; /* Additional spacing insurance */
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px;
+            width: calc(100% - 270px);
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
         }
         .sidebar {
             width: 260px;
@@ -77,7 +98,8 @@ include 'sidebar.php';
             margin-right: 10px;
             font-size: 18px;
         }
-        .sidebar a:hover, .sidebar a.active {
+        .sidebar a:hover, 
+        .sidebar a.active {
             background: rgba(255, 255, 255, 0.2);
             border-left: 5px solid #fff;
         }
@@ -93,23 +115,10 @@ include 'sidebar.php';
             box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
         }
-        .event-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-top: 10px;
-        }
-        .event-form {
-            display: none;
-            width: 350px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            position: absolute;
-            top: 120px;
-            left: 280px;
+
+        .form-container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
     </style>
 
@@ -121,74 +130,81 @@ include 'sidebar.php';
    <!-- Sidebar -->
    <?php include 'sidebar.php'; ?>
 
-    <div class="content">
-        <nav class="navbar navbar-light">
-            <div class="container-fluid d-flex justify-content-between">
-                <span class="navbar-brand mb-0 h1">User Management</span>
-                <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                    </ul>
-                </div>
+   <div class="content">
+    <nav class="navbar navbar-light">
+        <div class="container-fluid d-flex justify-content-between">
+            <span class="navbar-brand mb-0 h1">User Management</span>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <?= htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item">User Type: <?= htmlspecialchars($_SESSION['user_type']); ?></a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                </ul>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-
-        <div class="container mt-5">
-        <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
-        <?php unset($_SESSION['error']); endif; ?>
-
-        <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
-        <?php unset($_SESSION['success']); endif; ?>
-
-        <div class="row">
-            <div class="col-md-8">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="form-container">
                 <div class="card shadow-sm p-4">
-                    <h2 class="mb-4">Add New User</h2>
+                    <h2 class="mb-4"><i class="bi bi-person-plus"></i> Add New User</h2>
+                    
+                    <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
+                    <?php unset($_SESSION['error']); endif; ?>
+                    
+                    <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success"><?= $_SESSION['success'] ?></div>
+                    <?php unset($_SESSION['success']); endif; ?>
+
                     <form method="POST">
-                        <!-- Keep existing form fields -->
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" name="name" required>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" name="name" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" class="form-control" name="email" required>
+
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" name="password" required>
+
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" name="password" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">User Type</label>
-                            <select class="form-select" name="user_type" required>
+
+                        <div class="form-group">
+                            <label>User Type</label>
+                            <select name="user_type" class="form-select" required>
                                 <option value="user">User</option>
                                 <option value="staff">Staff</option>
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Department</label>
-                            <select class="form-select" name="department" required>
+
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select name="department" class="form-select" required>
                                 <option value="Information Technology">Information Technology</option>
                                 <option value="Accounting">Accounting</option>
                                 <option value="Business">Business</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">School ID</label>
-                            <input type="text" class="form-control" name="school_id" required>
+
+                        <div class="form-group">
+                            <label>School ID</label>
+                            <input type="text" name="school_id" class="form-control" required>
                         </div>
+
                         <div class="d-flex justify-content-between mt-4">
-                            <button type="submit" class="btn btn-primary">Add User</button>
-                            <a href="admin_user management.php" class="btn btn-secondary">Cancel</a>
+                            <a href="admin_user management.php" class="btn btn-secondary px-4">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                Add User
+                            </button>
                         </div>
                     </form>
                 </div>

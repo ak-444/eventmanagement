@@ -368,7 +368,7 @@ include 'sidebar.php';
                     <!-- Left Column - Event Details -->
                     <div class="col-lg-8">
                         <div class="card p-4">
-                            <h4 class="mb-4">Event Details</h4>
+                        <h4 class="mb-4"><i class="bi bi-calendar-event"></i> Event Details</h4>
                             
                             <div class="mb-3">
                                 <label class="form-label">Event Name</label>
@@ -396,18 +396,7 @@ include 'sidebar.php';
                             </div>
 
                             <!-- Add Staff Assignment Section Here -->
-                            <div class="mb-4">
-                                <h5>Assign Staff</h5>
-                                <select name="staff[]" multiple class="form-select" size="5">
-                                    <?php foreach ($staff_members as $staff): ?>
-                                        <option value="<?= $staff['id'] ?>" 
-                                            <?= in_array($staff['id'], $assigned_staff) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($staff['username']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-text">Hold CTRL/CMD to select multiple staff members</div>
-                            </div>
+                        
 
                             <div class="mb-4">
                                 <label class="form-label">Event Description</label>
@@ -422,7 +411,7 @@ include 'sidebar.php';
                     <!-- Right Column - Attendees Management -->
                     <div class="col-lg-4">
                         <div class="card p-4">
-                            <h4 class="mb-4">Manage Attendees</h4>
+                        <h4 class="mb-4"><i class="bi bi-people-fill"></i> Manage Attendees</h4>
 
                             <div class="mb-3">
                                 <label class="form-label">Add Users</label>
@@ -464,6 +453,19 @@ include 'sidebar.php';
                                         <div class="text-muted">No attendees yet.</div>
                                     <?php endif; ?>
                                 </div>
+                            </div>
+
+                            <div class="mb-4">
+                            <h4 class="mb-4"><i class="bi bi-person-gear"></i> Assign Staff</h4>
+                                <select name="staff[]" multiple class="form-select" size="5">
+                                    <?php foreach ($staff_members as $staff): ?>
+                                        <option value="<?= $staff['id'] ?>" 
+                                            <?= in_array($staff['id'], $assigned_staff) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($staff['username']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">Hold CTRL/CMD to select multiple staff members</div>
                             </div>
                         </div>
                     </div>

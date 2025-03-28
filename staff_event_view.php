@@ -21,7 +21,7 @@ $stmt->close();
 
 if (!$event) {
     $_SESSION['error'] = "You are not authorized to access this event.";
-    header("Location: staff_dashboard.php");
+    header("Location: staff_event_management.php");
     exit();
 }
 
@@ -33,10 +33,6 @@ $stmt->execute();
 $event = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if (!$event) {
-    $_SESSION['error'] = "You are not authorized to access this event.";
-    session_write_close(); // Ensure session data is saved
-}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Re-validate staff authorization
@@ -109,6 +105,7 @@ include 'sidebar.php';
         body {
             display: flex;
             background: #f4f4f4;
+            
         }
         .sidebar {
             width: 260px;

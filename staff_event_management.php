@@ -33,7 +33,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         body {
             display: flex;
             background: #f4f4f4;
-            font-family: Arial, sans-serif;
+       
         }
 
         .content {
@@ -229,9 +229,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         <i class="bi bi-eye"></i> View
                                     </a>
                                     <?php if ($row['status'] == 'Pending'): ?>
-                                    <a href="?edit_id=<?= $row['id'] ?>" class="btn btn-warning btn-action text-white">
-                                        <i class="bi bi-pencil"></i> Edit
-                                    </a>
+                                 
                                     <?php endif; ?>
                                 </div>
                             </td>

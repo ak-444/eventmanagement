@@ -210,6 +210,33 @@ include 'sidebar.php';
         .attendee-box {
             height: calc(100% - 30px);
         }
+        .form-select[multiple] {
+            height: 150px;
+            padding: 10px;
+        }
+
+        .form-select[multiple] option {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+
+        .form-select[multiple] option:checked {
+            background-color: #e3f2fd;
+            color: #1a237e;
+            font-weight: 500;
+        }
+
+        .form-text {
+            color: #6c757d;
+            font-size: 0.875em;
+            margin-top: 0.5rem;
+        }
+
+        #noAttendeesMessage {
+        display: none;
+        color: #6c757d;
+        }       
 
     </style>
 </head>
@@ -296,7 +323,7 @@ include 'sidebar.php';
                                         <?php endforeach; ?>
                                     </select>
                                     <button type="button" class="btn btn-primary" onclick="addAttendee()">
-                                        <i class="bi bi-plus-lg"></i>
+                                        Add
                                     </button>
                                 </div>
                                 
@@ -305,27 +332,28 @@ include 'sidebar.php';
                                     <div id="attendeesContainer" class="mt-2">
                                         <!-- Dynamic attendees -->
                                     </div>
+                                    <div id="noAttendeesMessage" class="text-muted mt-2">No attendees selected. Please add some.
                                 </div>
                             </div>
+
+                            <div class="mt-4">
+                                <h4 class="mb-4"><i class="bi bi-person-gear"></i> Assign Staff</h4>
+                                    <div class="flex-grow-1">
+                                        <select name="staff[]" multiple class="form-select" size="8">
+                                            <?php foreach ($staff_members as $staff): ?>
+                                                <option value="<?= $staff['id'] ?>">
+                                                    <?= htmlspecialchars($staff['username']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="form-text mt-2">Hold CTRL/CMD to select multiple staff members</div>
+                                    </div>
+                            </div>
+
 
                             <button type="submit" class="btn btn-success btn-lg w-100 mt-3">
                                 <i class="bi bi-check-circle"></i> Create Event
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-section card-style h-100 d-flex flex-column">
-                            <h4 class="mb-4"><i class="bi bi-person-gear"></i> Assign Staff</h4>
-                            <div class="flex-grow-1">
-                                <select name="staff[]" multiple class="form-select" size="8">
-                                    <?php foreach ($staff_members as $staff): ?>
-                                        <option value="<?= $staff['id'] ?>">
-                                            <?= htmlspecialchars($staff['username']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -359,6 +387,47 @@ include 'sidebar.php';
             container.appendChild(div);
         }
     }
+
+
+    function checkAttendees() {
+    const container = document.getElementById('attendeesContainer');
+    const message = document.getElementById('noAttendeesMessage');
+    message.style.display = container.children.length === 0 ? 'block' : 'none';
+    }
+
+    function removeAttendee(button) {
+        button.closest('.attendee-item').remove();
+        checkAttendees();
+    }
+
+    // Update addAttendee() function
+    function addAttendee() {
+        const select = document.getElementById('userSelect');
+        const user = select.options[select.selectedIndex];
+        const container = document.getElementById('attendeesContainer');
+
+        const existing = Array.from(container.querySelectorAll('input'))
+            .some(input => input.value === user.value);
+        
+        if (!existing) {
+            const div = document.createElement('div');
+            div.className = 'attendee-item d-flex justify-content-between align-items-center p-2 mb-2 rounded';
+            div.innerHTML = `
+                <div>
+                    ${user.textContent.split(' (')[0]}
+                    <input type="hidden" name="attendees[]" value="${user.value}">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeAttendee(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            checkAttendees();
+        }
+    }
+
+    // Initial check when page loads
+    document.addEventListener('DOMContentLoaded', checkAttendees);
     </script>
 </body>
 </html>

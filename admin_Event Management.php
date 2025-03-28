@@ -24,15 +24,23 @@ if (isset($_GET['delete_id'])) {
     
     $conn->begin_transaction();
     try {
+        // 1. Delete from event_attendees
         $stmt1 = $conn->prepare("DELETE FROM event_attendees WHERE event_id = ?");
         $stmt1->bind_param("i", $delete_id);
         $stmt1->execute();
         $stmt1->close();
         
-        $stmt2 = $conn->prepare("DELETE FROM events WHERE id = ?");
+        // 2. Delete from event_staff (NEW)
+        $stmt2 = $conn->prepare("DELETE FROM event_staff WHERE event_id = ?");
         $stmt2->bind_param("i", $delete_id);
         $stmt2->execute();
         $stmt2->close();
+        
+        // 3. Delete from events
+        $stmt3 = $conn->prepare("DELETE FROM events WHERE id = ?");
+        $stmt3->bind_param("i", $delete_id);
+        $stmt3->execute();
+        $stmt3->close();
         
         $conn->commit();
         
@@ -200,6 +208,13 @@ include 'sidebar.php';
             </div>
         </div>
         <?php unset($_SESSION['success']); endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3">
+            <?= $_SESSION['error'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['error']); endif; ?>
 
         <div class="event-header">
             <div class="d-flex align-items-center">
