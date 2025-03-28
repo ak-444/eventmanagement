@@ -20,18 +20,19 @@ $counts = [
     'cancelled' => 0
 ];
 
-// Total Events
-$result = $conn->query("SELECT COUNT(*) as total FROM events");
+// Total Events (excluding rejected)
+$result = $conn->query("SELECT COUNT(*) as total FROM events WHERE status != 'Rejected'");
 if ($result) $counts['total'] = $result->fetch_assoc()['total'];
 
-// Upcoming Events (this week)
+// Upcoming Events (this week and not rejected)
 $weekStart = date('Y-m-d', strtotime('monday this week'));
 $weekEnd = date('Y-m-d', strtotime('sunday this week'));
 $result = $conn->query("SELECT COUNT(*) as upcoming FROM events 
-                      WHERE event_date BETWEEN '$weekStart' AND '$weekEnd'");
+                      WHERE event_date BETWEEN '$weekStart' AND '$weekEnd' 
+                      AND status != 'Rejected'");
 if ($result) $counts['upcoming'] = $result->fetch_assoc()['upcoming'];
 
-// Cancelled Events
+// Cancelled Events (only rejected)
 $result = $conn->query("SELECT COUNT(*) as cancelled FROM events 
                       WHERE status = 'Rejected'");
 if ($result) $counts['cancelled'] = $result->fetch_assoc()['cancelled'];
