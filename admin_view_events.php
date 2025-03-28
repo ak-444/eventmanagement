@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
 
 $event_id = $_GET['id'] ?? null;
 if (!$event_id || !is_numeric($event_id)) {
-    header("Location: admin_Event_management.php");
+    header("Location: admin_Event Management.php");
     exit();
 }
 
@@ -22,8 +22,24 @@ $event = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$event) {
-    header("Location: admin_Event_management.php");
+    header("Location: admin_Event Management.php");
     exit();
+}
+
+// Fetch assigned staff
+$assigned_staff = [];
+try {
+    $stmt = $conn->prepare("SELECT u.username, u.department 
+                          FROM event_staff es
+                          JOIN users u ON es.staff_id = u.id
+                          WHERE es.event_id = ?");
+    $stmt->bind_param("i", $event_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $assigned_staff = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+} catch (Exception $e) {
+    error_log($e->getMessage());
 }
 
 // Fetch attendees with proper error handling
@@ -177,6 +193,25 @@ include 'sidebar.php';
                 </div>
                 <div class="col-md-4">
                     <p><strong>Venue:</strong> <?= htmlspecialchars($event['venue']) ?></p>
+                </div>
+            </div> <!-- Close the first row -->
+
+            <!-- Add this new row for staff -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <p><strong>Assigned Staff:</strong></p>
+                    <?php if (!empty($assigned_staff)): ?>
+                        <ul class="list-group">
+                            <?php foreach ($assigned_staff as $staff): ?>
+                                <li class="list-group-item">
+                                    <?= htmlspecialchars($staff['username']) ?> 
+                                    <span class="text-muted">(<?= $staff['department'] ?>)</span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <div class="alert alert-info">No staff assigned to this event</div>
+                    <?php endif; ?>
                 </div>
             </div>
 

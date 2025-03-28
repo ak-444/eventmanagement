@@ -15,6 +15,11 @@ if ($result) $users = $result->fetch_all(MYSQLI_ASSOC);
 
 $event_message = $attendee_message = "";
 
+$stmt = $conn->prepare("SELECT id, username FROM users 
+                       WHERE user_type = 'staff' AND status = 'approved'");
+$stmt->execute();
+$staff_members = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn->begin_transaction();
@@ -40,6 +45,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (!$stmt->execute()) throw new Exception("Event creation failed: " . $stmt->error);
         $event_id = $conn->insert_id;
         $stmt->close();
+
+        if (!empty($_POST['staff'])) {
+            $staff_ids = array_filter($_POST['staff'], 'is_numeric');
+            
+            $stmt = $conn->prepare("INSERT INTO event_staff (event_id, staff_id) VALUES (?, ?)");
+            foreach ($staff_ids as $staff_id) {
+                $stmt->bind_param("ii", $event_id, $staff_id);
+                $stmt->execute();
+            }
+            $stmt->close();
+        }
 
         // Handle attendees
         if (!empty($_POST['attendees'])) {
@@ -295,6 +311,21 @@ include 'sidebar.php';
                             <button type="submit" class="btn btn-success btn-lg w-100 mt-3">
                                 <i class="bi bi-check-circle"></i> Create Event
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="form-section card-style h-100 d-flex flex-column">
+                            <h4 class="mb-4"><i class="bi bi-person-gear"></i> Assign Staff</h4>
+                            <div class="flex-grow-1">
+                                <select name="staff[]" multiple class="form-select" size="8">
+                                    <?php foreach ($staff_members as $staff): ?>
+                                        <option value="<?= $staff['id'] ?>">
+                                            <?= htmlspecialchars($staff['username']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>

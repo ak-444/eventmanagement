@@ -7,6 +7,10 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$stmt1 = $conn->prepare("DELETE FROM event_attendees WHERE event_id = ?");
+$stmt2 = $conn->prepare("DELETE FROM event_staff WHERE event_id = ?");
+$stmt3 = $conn->prepare("DELETE FROM events WHERE id = ?");
+
 if ($_SESSION['user_type'] == 'admin') {
     $dashboardLink = 'admin_dashboard.php';
 } elseif ($_SESSION['user_type'] == 'staff') {
@@ -43,6 +47,11 @@ if (isset($_GET['delete_id'])) {
         exit();
     }
 }
+
+$stmt2 = $conn->prepare("DELETE FROM event_staff WHERE event_id = ?");
+$stmt2->bind_param("i", $delete_id);
+$stmt2->execute();
+$stmt2->close();
 
 $sql = "SELECT id, event_name, event_date, event_time, venue FROM events WHERE status='Approved'";
 $result = $conn->query($sql);

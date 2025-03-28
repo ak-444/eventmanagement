@@ -8,10 +8,23 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'staff') {
 }
 
 $event_id = $_GET['id'] ?? null;
-if (!$event_id || !is_numeric($event_id)) {
+$staff_id = $_SESSION['user_id'];
+
+// Check authorization and get event details in one query
+$stmt = $conn->prepare("SELECT e.* FROM events e 
+                       INNER JOIN event_staff es ON e.id = es.event_id 
+                       WHERE e.id = ? AND es.staff_id = ?");
+$stmt->bind_param("ii", $event_id, $staff_id);
+$stmt->execute();
+$event = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$event) {
+    $_SESSION['error'] = "You are not authorized to access this event.";
     header("Location: staff_dashboard.php");
     exit();
 }
+
 
 // Fetch event details
 $stmt = $conn->prepare("SELECT * FROM events WHERE id = ?");
@@ -21,22 +34,45 @@ $event = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$event) {
-    header("Location: staff_dashboard.php");
-    exit();
+    $_SESSION['error'] = "You are not authorized to access this event.";
+    session_write_close(); // Ensure session data is saved
 }
 
-// Handle attendance update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance'])) {
-    foreach ($_POST['attendance'] as $user_id => $status) {
-        $stmt = $conn->prepare("UPDATE event_attendees SET attended = ? WHERE event_id = ? AND user_id = ?");
-        $status = $status === 'present' ? 1 : 0;
-        $stmt->bind_param("iii", $status, $event_id, $user_id);
-        $stmt->execute();
-        $stmt->close();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Re-validate staff authorization
+    $stmt = $conn->prepare("SELECT 1 FROM event_staff 
+                           WHERE event_id = ? AND staff_id = ?");
+    $stmt->bind_param("ii", $event_id, $staff_id);
+    $stmt->execute();
+    if (!$stmt->get_result()->num_rows) {
+        $_SESSION['error'] = "Authorization failed. Please try again.";
+        header("Location: staff_dashboard.php");
+        exit();
     }
-    // Refresh to show updated status
-    $_SESSION['success'] = "Attendance updated successfully!";
-    header("Location: staff_event_view.php?id=$event_id");
+    $stmt->close();
+
+    // Process attendance update
+    if (isset($_POST['attendance'])) {
+        $conn->begin_transaction();
+        try {
+            $updateStmt = $conn->prepare("UPDATE event_attendees SET attended = ? WHERE event_id = ? AND user_id = ?");
+            foreach ($_POST['attendance'] as $user_id => $status) {
+                $attended = ($status === 'present') ? 1 : 0;
+                $updateStmt->bind_param("iii", $attended, $event_id, $user_id);
+                $updateStmt->execute();
+            }
+            $conn->commit();
+            $_SESSION['success'] = "Attendance updated successfully!";
+        } catch (Exception $e) {
+            $conn->rollback();
+            $_SESSION['error'] = "Error updating attendance: " . $e->getMessage();
+        }
+        $updateStmt->close();
+    } else {
+        $_SESSION['error'] = "No attendance data submitted.";
+    }
+    
+    header("Location: staff_event_view.php?id=" . $event_id);
     exit();
 }
 
@@ -151,6 +187,15 @@ include 'sidebar.php';
                 </div>
             </div>
         </nav>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="container mt-3">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?= $_SESSION['error'] ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            <?php unset($_SESSION['error']); endif; ?>
         <?php if (isset($_SESSION['success'])): ?>
         <div class="container mt-3">
             <div class="alert alert-success alert-dismissible fade show" role="alert">

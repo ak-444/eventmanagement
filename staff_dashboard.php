@@ -1,11 +1,19 @@
 <?php
 session_start();
+require_once 'config.php'; // Add this line to initialize database connection
+
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'staff') {
     header("Location: login.php");
     exit();
 }
-include 'sidebar.php';
 
+$stmt = $conn->prepare("SELECT e.* FROM events e
+                      INNER JOIN event_staff es ON e.id = es.event_id
+                      WHERE es.staff_id = ?");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+include 'sidebar.php';
 ?>
 
 <!DOCTYPE html>

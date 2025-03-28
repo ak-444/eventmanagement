@@ -8,6 +8,74 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     exit();
 }
 
+$assigned_staff = [];
+try {
+    $stmt = $conn->prepare("SELECT staff_id FROM event_staff WHERE event_id = ?");
+    $stmt->bind_param("i", $event_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $assigned_staff = $result->fetch_all(MYSQLI_ASSOC);
+    $assigned_staff = array_column($assigned_staff, 'staff_id');
+    $stmt->close();
+} catch (Exception $e) {
+    error_log($e->getMessage());
+}
+
+// Validate and get event ID FIRST
+$event_id = $_GET['id'] ?? null;
+if (!$event_id || !is_numeric($event_id)) {
+    header("Location: admin_Event Management.php");
+    exit();
+}
+
+// Check authentication AFTER event_id validation
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
+    header("Location: login.php");
+    exit();
+}
+
+// Fetch all approved staff
+$staff_members = [];
+try {
+    $result = $conn->query("SELECT id, username FROM users 
+                           WHERE user_type = 'staff' AND status = 'approved'");
+    if ($result) $staff_members = $result->fetch_all(MYSQLI_ASSOC);
+} catch (Exception $e) {
+    error_log($e->getMessage());
+}
+
+// In the form handling section, add staff processing:
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // ... existing code ...
+    
+    // Handle staff assignments
+    $conn->begin_transaction();
+    try {
+        // Delete existing staff assignments
+        $del_stmt = $conn->prepare("DELETE FROM event_staff WHERE event_id = ?");
+        $del_stmt->bind_param("i", $event_id);
+        $del_stmt->execute();
+        $del_stmt->close();
+
+        // Insert new assignments
+        if (!empty($_POST['staff'])) {
+            $staff_ids = array_filter($_POST['staff'], 'is_numeric');
+            $insert_stmt = $conn->prepare("INSERT INTO event_staff (event_id, staff_id) VALUES (?, ?)");
+            
+            foreach ($staff_ids as $staff_id) {
+                $insert_stmt->bind_param("ii", $event_id, $staff_id);
+                $insert_stmt->execute();
+            }
+            $insert_stmt->close();
+        }
+        
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        throw $e;
+    }
+}
+
 // Initialize variables
 $event = [];
 $attendees = [];
@@ -15,7 +83,7 @@ $attendees = [];
 // Validate and get event ID
 $event_id = $_GET['id'] ?? null;
 if (!$event_id || !is_numeric($event_id)) {
-    header("Location: admin_Event_management.php");
+    header("Location: admin_Event Management.php");
     exit();
 }
 
@@ -32,12 +100,12 @@ try {
     $stmt->close();
 
     if (!$event) {
-        header("Location: admin_Event_management.php");
+        header("Location: admin_Event Management.php");
         exit();
     }
 } catch (Exception $e) {
     error_log($e->getMessage());
-    header("Location: admin_Event_management.php");
+    header("Location: admin_Event Management.php");
     exit();
 }
 
@@ -231,13 +299,28 @@ include 'sidebar.php';
             background-color: #f8f9fa;
         }
 
-        .form-section {
-        background: white;
-        padding: 25px;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.05);
-        height: 100%; /* Add full height */
-        }   
+        .form-select[multiple] {
+            height: 150px;
+            padding: 10px;
+        }
+
+        .form-select[multiple] option {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-select[multiple] option:checked {
+            background-color: #e3f2fd;
+            color: #1a237e;
+        }
+
+        /* Staff list styling */
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+        }
         
     </style>
 </head>
@@ -280,7 +363,7 @@ include 'sidebar.php';
         <?php endif; ?>
 
         <div class="container-fluid">
-            <form method="POST">
+         <form method="POST" action="admin_edit_events.php?id=<?= $event_id ?>">
                 <div class="row g-4">
                     <!-- Left Column - Event Details -->
                     <div class="col-lg-8">
@@ -310,6 +393,20 @@ include 'sidebar.php';
                                 <label class="form-label">Venue</label>
                                 <input type="text" class="form-control" name="venue" 
                                     value="<?= htmlspecialchars($event['venue'] ?? '') ?>" required>
+                            </div>
+
+                            <!-- Add Staff Assignment Section Here -->
+                            <div class="mb-4">
+                                <h5>Assign Staff</h5>
+                                <select name="staff[]" multiple class="form-select" size="5">
+                                    <?php foreach ($staff_members as $staff): ?>
+                                        <option value="<?= $staff['id'] ?>" 
+                                            <?= in_array($staff['id'], $assigned_staff) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($staff['username']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">Hold CTRL/CMD to select multiple staff members</div>
                             </div>
 
                             <div class="mb-4">
