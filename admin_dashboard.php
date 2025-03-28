@@ -6,6 +6,37 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'admin') {
     header("Location: login.php");
     exit();
 }
+
+// Database connection
+$conn = new mysqli($host, $user, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get counts
+$counts = [
+    'total' => 0,
+    'upcoming' => 0,
+    'cancelled' => 0
+];
+
+// Total Events
+$result = $conn->query("SELECT COUNT(*) as total FROM events");
+if ($result) $counts['total'] = $result->fetch_assoc()['total'];
+
+// Upcoming Events (this week)
+$weekStart = date('Y-m-d', strtotime('monday this week'));
+$weekEnd = date('Y-m-d', strtotime('sunday this week'));
+$result = $conn->query("SELECT COUNT(*) as upcoming FROM events 
+                      WHERE event_date BETWEEN '$weekStart' AND '$weekEnd'");
+if ($result) $counts['upcoming'] = $result->fetch_assoc()['upcoming'];
+
+// Cancelled Events
+$result = $conn->query("SELECT COUNT(*) as cancelled FROM events 
+                      WHERE status = 'Rejected'");
+if ($result) $counts['cancelled'] = $result->fetch_assoc()['cancelled'];
+
+$conn->close();
 include 'sidebar.php';
 ?>
 
@@ -16,6 +47,7 @@ include 'sidebar.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/2.0.8/countUp.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <title>Dashboard</title>
     <style>
@@ -84,15 +116,30 @@ include 'sidebar.php';
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
             cursor: pointer;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        
         }
         .dashboard-card:hover {
             transform: translateY(-5px);
+            
             box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
         }
         .dashboard-card h5 {
             font-weight: bold;
+        } 
+        
+        .count-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
         }
 
+
+    
         /* Table */
         .table thead th {
             background: #293CB7;
@@ -148,19 +195,19 @@ include 'sidebar.php';
                     <div class="col-md-4">
                         <div class="dashboard-card bg-primary text-white">
                             <h5>Total Events</h5>
-                            <p>Click to View</p>
+                            <div class="count-number" data-count="<?= $counts['total'] ?>">0</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="dashboard-card bg-success text-white">
                             <h5>Upcoming Events</h5>
-                            <p>Click to View</p>
+                            <div class="count-number" data-count="<?= $counts['upcoming'] ?>">0</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="dashboard-card bg-danger text-white">
                             <h5>Cancelled Bookings</h5>
-                            <p>Click to View</p>
+                            <div class="count-number" data-count="<?= $counts['cancelled'] ?>">0</div>
                         </div>
                     </div>
                 </div>
@@ -203,6 +250,42 @@ include 'sidebar.php';
         function changeHeader(title) {
             document.getElementById('headerTitle').textContent = title;
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            const animateCounters = () => {
+                const counters = document.querySelectorAll('.count-number');
+                
+                counters.forEach(counter => {
+                    const updateCount = () => {
+                        const target = +counter.getAttribute('data-count');
+                        const count = +counter.innerText;
+                        const increment = target / 100;
+
+                        if (count < target) {
+                            counter.innerText = Math.ceil(count + increment);
+                            setTimeout(updateCount, 20);
+                        } else {
+                            counter.innerText = target;
+                        }
+                    };
+
+                    updateCount();
+                });
+            };
+
+            // Trigger animation when element is in view
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateCounters();
+                        observer.unobserve(entry.target);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.dashboard-card').forEach(card => {
+                observer.observe(card);
+            });
+        });
     </script>
 </body>
 </html>
