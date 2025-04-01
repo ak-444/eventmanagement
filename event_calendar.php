@@ -159,7 +159,7 @@ include 'sidebar.php';
         }
 
         .search-bar-container .form-control {
-            border-radius: 20px;
+            border-radius: 6px;
             padding: 8px 15px;
             border: 1px solid #dee2e6;
             transition: all 0.3s ease;
@@ -169,6 +169,23 @@ include 'sidebar.php';
             border-color: #293CB7;
             box-shadow: 0 0 0 3px rgba(41, 60, 183, 0.1);
         }
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            z-index: 2;
+            padding: 0;
+            height: 20px;
+            width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
     </style>
 </head>
 <body>
@@ -185,7 +202,7 @@ include 'sidebar.php';
                 <span class="navbar-brand mb-0 h1">Event Calendar</span>
                 <div class="dropdown">
                     <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                    <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>
@@ -202,6 +219,9 @@ include 'sidebar.php';
                 <div class="d-flex gap-2">
                 <div class="search-bar-container">
                     <input type="text" class="form-control" placeholder="Search events...">
+                    <button type="submit" class="search-btn">
+                            <i class="bi bi-search"></i>
+                    </button>
                 </div>
                     <?php if($_SESSION['user_type'] == 'admin'): ?>
                     <button class="btn btn-primary" onclick="location.href='admin_event form.php'">

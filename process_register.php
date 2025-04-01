@@ -1,6 +1,6 @@
 <?php
-session_start(); // Start session for user type check
-include 'config.php'; // Include database connection
+session_start();
+include 'config.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Retrieve form data
@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_type = $_POST['user_type'];
     $school_id = $_POST['school_id'];
     $department = $_POST['department'];
-
+    
     // Default status for public registration
     $status = 'pending';
 
@@ -19,26 +19,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $status = 'approved';
     }
 
+    // Handle file upload
+    $photoPath = null;
+    if (isset($_FILES['id_photo']) && $_FILES['id_photo']['error'] === UPLOAD_ERR_OK) {
+        // Create uploads directory if it doesn't exist
+        $uploadDir = 'uploads/id_photos/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        // Generate unique filename
+        $fileExt = pathinfo($_FILES['id_photo']['name'], PATHINFO_EXTENSION);
+        $filename = uniqid() . '.' . $fileExt;
+        $targetPath = $uploadDir . $filename;
+
+        // Move uploaded file
+        if (move_uploaded_file($_FILES['id_photo']['tmp_name'], $targetPath)) {
+            $photoPath = $targetPath;
+        } else {
+            header("Location: register.php?error=upload_failed");
+            exit();
+        }
+    } else {
+        header("Location: register.php?error=no_photo");
+        exit();
+    }
+
     // Prepare SQL statement
-    $sql = "INSERT INTO users (username, email, password, user_type, school_id, department, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO users (username, email, password, user_type, school_id, department, status, id_photo_path) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
 
     if ($stmt) {
         // Bind parameters
-        $stmt->bind_param("sssssss", $name, $email, $password, $user_type, $school_id, $department, $status);
+        $stmt->bind_param("ssssssss", $name, $email, $password, $user_type, $school_id, $department, $status, $photoPath);
 
         // Execute the statement
         if ($stmt->execute()) {
-            header("Location: register.php?success=1");
+            // Redirect directly to login.php instead of register.php with success parameter
+            header("Location: login.php");
             exit();
         } else {
-            echo "Error: " . $stmt->error;
+            header("Location: register.php?error=db_error");
+            exit();
         }
 
         // Close statement
         $stmt->close();
     } else {
-        echo "Error preparing statement: " . $conn->error;
+        header("Location: register.php?error=db_error");
+        exit();
     }
 
     // Close connection

@@ -3,7 +3,7 @@
 $host = "localhost";
 $user = "root";
 $password = "";
-$database = "event_management";
+$database = "event_managements";
 
 // Create connection
 $conn = new mysqli($host, $user, $password, $database);

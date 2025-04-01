@@ -20,16 +20,16 @@ $counts = [
     'cancelled' => 0
 ];
 
-// Total Events (excluding rejected)
-$result = $conn->query("SELECT COUNT(*) as total FROM events WHERE status != 'Rejected'");
+// Total Approved Events
+$result = $conn->query("SELECT COUNT(*) as total FROM events WHERE status = 'Approved'");
 if ($result) $counts['total'] = $result->fetch_assoc()['total'];
 
-// Upcoming Events (this week and not rejected)
+// Upcoming Approved Events (this week)
 $weekStart = date('Y-m-d', strtotime('monday this week'));
 $weekEnd = date('Y-m-d', strtotime('sunday this week'));
 $result = $conn->query("SELECT COUNT(*) as upcoming FROM events 
                       WHERE event_date BETWEEN '$weekStart' AND '$weekEnd' 
-                      AND status != 'Rejected'");
+                      AND status = 'Approved'");
 if ($result) $counts['upcoming'] = $result->fetch_assoc()['upcoming'];
 
 // Cancelled Events (only rejected)
@@ -171,7 +171,7 @@ include 'sidebar.php';
                 <!-- User Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                    <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="#">User Type: <?php echo htmlspecialchars($_SESSION['user_type']); ?></a></li>

@@ -12,13 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $responses = $_POST['responses'] ?? [];
 
     // Save responses to the database
-    foreach ($responses as $index => $response) {
-        $question_index = $index + 1;
-        $stmt = $conn->prepare("INSERT INTO evaluations (event_id, user_id, question_index, response) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("iiis", $event_id, $_SESSION['user_id'], $question_index, $response);
-        $stmt->execute();
-        $stmt->close();
-    }
+    // In submit_evaluation.php
+foreach ($_POST['responses'] as $question_id => $response_text) {
+    // Insert each response into the database
+    $stmt = $conn->prepare("INSERT INTO answers (question_id, user_id, answer_text) VALUES (?, ?, ?)");
+    $stmt->bind_param("iis", $question_id, $_SESSION['user_id'], $response_text);
+    $stmt->execute();
+    $stmt->close();
+}
 
     echo "<script>alert('Evaluation submitted successfully!'); window.location.href='user_evaluation.php';</script>";
 }

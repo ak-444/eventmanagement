@@ -2,20 +2,39 @@
 session_start();
 require_once 'config.php';
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-$current_page = basename($_SERVER['PHP_SELF']);
-$user_type = $_SESSION['user_type'] ?? 'user';
-$dashboardLink = match($user_type) {
-    'admin' => 'admin_dashboard.php',
-    'staff' => 'staff_dashboard.php',
-    default => 'user_dashboard.php'
-};
+if (!isset($_GET['id'])) {
+    header("Location: admin_questionnaires.php");
+    exit();
+}
 
-// Fetch approved events from the database
+$questionnaire_id = $_GET['id'];
+
+// Fetch questionnaire details
+$stmt = $conn->prepare("SELECT * FROM questionnaires WHERE id = ?");
+$stmt->bind_param("i", $questionnaire_id);
+$stmt->execute();
+$questionnaire = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$questionnaire) {
+    header("Location: admin_questionnaires.php");
+    exit();
+}
+
+// Fetch existing questions
+$stmt = $conn->prepare("SELECT * FROM questions WHERE questionnaire_id = ?");
+$stmt->bind_param("i", $questionnaire_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$existing_questions = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Fetch approved events
 $sql = "SELECT id, event_name FROM events WHERE status='Approved'";
 $result = $conn->query($sql);
 $events = [];
@@ -31,28 +50,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = $_POST['description'];
     $questions = $_POST['questions'];
 
-    $stmt = $conn->prepare("INSERT INTO questionnaires (event_id, title, description, created_at) VALUES (?, ?, ?, NOW())");
-    $stmt->bind_param("iss", $event_id, $title, $description);
+    // Update questionnaire
+    $stmt = $conn->prepare("UPDATE questionnaires SET event_id=?, title=?, description=? WHERE id=?");
+    $stmt->bind_param("issi", $event_id, $title, $description, $questionnaire_id);
     $stmt->execute();
-    $questionnaire_id = $stmt->insert_id;
     $stmt->close();
 
+    // Track existing question IDs
+    $existing_ids = [];
+    foreach ($existing_questions as $q) {
+        $existing_ids[] = $q['id'];
+    }
+
+    $updated_ids = [];
+    
     foreach ($questions as $question) {
         if (!empty($question['text'])) {
-            $stmt = $conn->prepare("INSERT INTO questions (questionnaire_id, question_text, question_type) VALUES (?, ?, ?)");
-            $stmt->bind_param("iss", $questionnaire_id, $question['text'], $question['type']);
-            
-            if (!$stmt->execute()) {
-                die("Database error: " . $stmt->error);
+            if (isset($question['id']) && !empty($question['id'])) {
+                // Update existing question
+                $stmt = $conn->prepare("UPDATE questions SET question_text=?, question_type=? WHERE id=?");
+                $stmt->bind_param("ssi", $question['text'], $question['type'], $question['id']);
+                $updated_ids[] = $question['id'];
+            } else {
+                // Insert new question
+                $stmt = $conn->prepare("INSERT INTO questions (questionnaire_id, question_text, question_type) VALUES (?, ?, ?)");
+                $stmt->bind_param("iss", $questionnaire_id, $question['text'], $question['type']);
             }
-            
+            $stmt->execute();
             $stmt->close();
         }
     }
 
-    echo "<script>alert('Questionnaire added successfully!'); window.location.href='admin_questionnaires.php';</script>";
-}
+    // Delete removed questions
+    $deleted_ids = array_diff($existing_ids, $updated_ids);
+    if (!empty($deleted_ids)) {
+        $ids = implode(',', $deleted_ids);
+        $conn->query("DELETE FROM questions WHERE id IN ($ids)");
+    }
 
+    echo "<script>alert('Questionnaire updated successfully!'); window.location.href='admin_questionnaires.php';</script>";
+}
 
 include 'sidebar.php';
 ?>
@@ -211,7 +248,7 @@ include 'sidebar.php';
     <div class="content">
         <nav class="navbar navbar-light">
             <div class="container-fluid d-flex justify-content-between">
-                <span class="navbar-brand mb-0 h1">Add Questionnaire</span>
+                <span class="navbar-brand mb-0 h1">Edit Questionnaire</span>
                 <div class="dropdown">
                     <button class="btn btn-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
                         <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
@@ -226,7 +263,7 @@ include 'sidebar.php';
         </nav>
 
         <div class="main-container">
-            <form method="POST" action="add_questionnaire.php" id="questionnaireForm" class="d-flex gap-3 w-100">
+            <form method="POST" action="edit_questionnaire.php?id=<?= $questionnaire_id ?>" id="questionnaireForm" class="d-flex gap-3 w-100">
                 <!-- Left Column - Form Inputs -->
                 <div class="form-container flex-grow-1">
                     <div class="mb-3">
@@ -234,17 +271,20 @@ include 'sidebar.php';
                         <select class="form-control" id="event_id" name="event_id" required>
                             <option value="">-- Select an Event --</option>
                             <?php foreach ($events as $event) : ?>
-                                <option value="<?= $event['id'] ?>"><?= htmlspecialchars($event['event_name']) ?></option>
+                                <option value="<?= $event['id'] ?>" <?= $event['id'] == $questionnaire['event_id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($event['event_name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="title" class="form-label">Questionnaire Title</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
+                        <input type="text" class="form-control" id="title" name="title" required 
+                               value="<?= htmlspecialchars($questionnaire['title']) ?>">
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="3"><?= htmlspecialchars($questionnaire['description']) ?></textarea>
                     </div>
                     <div id="questions-container">
                         <div class="question-input">
@@ -262,29 +302,88 @@ include 'sidebar.php';
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary mt-3">
-                        <i class="bi bi-save"></i> Save Questionnaire
+                        <i class="bi bi-save"></i> Update Questionnaire
                     </button>
                 </div>
-
-                
 
                 <!-- Right Column - Question List -->
                 <div class="question-list-container">
                     <h5>Question List</h5>
                     <div id="question-list">
-                        <div class="no-questions">No questions added yet</div>
+                        <?php if (empty($existing_questions)) : ?>
+                            <div class="no-questions">No questions added yet</div>
+                        <?php else : ?>
+                            <?php foreach ($existing_questions as $index => $question) : ?>
+                                <div class="question-item">
+                                    <div class="question-text">
+                                        <?= $index + 1 ?>. <?= htmlspecialchars($question['question_text']) ?>
+                                        <span class="badge bg-secondary"><?= $question['question_type'] ?></span>
+                                    </div>
+                                    <div class="question-actions">
+                                        <button class="btn btn-sm btn-outline-primary" type="button" onclick="editQuestion(event)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" type="button" onclick="deleteQuestion(event)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="questions[<?= $index ?>][id]" value="<?= $question['id'] ?>">
+                                    <input type="hidden" name="questions[<?= $index ?>][text]" value="<?= htmlspecialchars($question['question_text']) ?>">
+                                    <input type="hidden" name="questions[<?= $index ?>][type]" value="<?= $question['question_type'] ?>">
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
-                    
                 </div>
-
-                
             </form>
         </div>
     </div>
 
     <script>
+        // Similar JavaScript as add_questionnaire.php with edit capabilities
+        let questions = <?= json_encode(array_map(function($q) {
+        return [
+            'id' => $q['id'],
+            'text' => $q['question_text'],
+            'type' => $q['question_type']
+        ];
+    }, $existing_questions)) ?>;
+        document.addEventListener('DOMContentLoaded', function() {
+            updateQuestionList();
+        });
 
-function escapeHtml(unsafe) {
+        function updateQuestionList() {
+            const list = document.getElementById('question-list');
+            list.innerHTML = questions.length > 0 ? '' : '<div class="no-questions">No questions added yet</div>';
+
+            questions.forEach((q, index) => {
+                const questionEl = document.createElement('div');
+                questionEl.className = 'question-item';
+                questionEl.innerHTML = `
+                    <div class="question-text">
+                        ${index + 1}. ${escapeHtml(q.text)}
+                        <span class="badge bg-secondary">${q.type}</span>
+                    </div>
+                    <div class="question-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editQuestion(${q.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" name="questions[${index}][id]" value="${q.id || ''}">
+                    <input type="hidden" name="questions[${index}][text]" value="${escapeHtml(q.text)}">
+                    <input type="hidden" name="questions[${index}][type]" value="${q.type}">
+                `;
+                list.appendChild(questionEl);
+            });
+        }
+
+        // Include the rest of the JavaScript functions from add_questionnaire.php
+        // ... (same JavaScript as add_questionnaire.php with edit support) ...
+
+        function escapeHtml(unsafe) {
         return unsafe
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -295,7 +394,6 @@ function escapeHtml(unsafe) {
 
 
        let questionCount = 0;
-        let questions = [];
         let editingQuestionId = null;
 
         function addQuestionToList() {
@@ -318,31 +416,34 @@ function escapeHtml(unsafe) {
     }
 
     function updateQuestionList() {
-    const list = document.getElementById('question-list');
-    list.innerHTML = questions.length > 0 ? '' : '<div class="no-questions">No questions added yet</div>';
-
-    questions.forEach((q, index) => {
-        const questionEl = document.createElement('div');
-        questionEl.className = 'question-item';
-        questionEl.innerHTML = `
-            <div class="question-text">
-                ${index + 1}. ${escapeHtml(q.text)}
-                <span class="badge bg-secondary">${q.type}</span>
-            </div>
-            <div class="question-actions">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editQuestion(${q.id})">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-            <input type="hidden" name="questions[${index}][text]" value="${escapeHtml(q.text)}">
-            <input type="hidden" name="questions[${index}][type]" value="${q.type}">
-        `;
-        list.appendChild(questionEl);
-    });
-}
+        const list = document.getElementById('question-list');
+        list.innerHTML = questions.length > 0 ? '' : '<div class="no-questions">No questions added yet</div>';
+    
+        questions.forEach((q, index) => {
+            const questionEl = document.createElement('div');
+            questionEl.className = 'question-item';
+            questionEl.innerHTML = `
+                <div class="question-text">
+                    ${index + 1}. ${escapeHtml(q.text)}
+                    <span class="badge bg-secondary">${q.type}</span>
+                </div>
+                <div class="question-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                            onclick="editQuestion(${q.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                            onclick="deleteQuestion(${q.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <input type="hidden" name="questions[${index}][id]" value="${q.id || ''}">
+                <input type="hidden" name="questions[${index}][text]" value="${escapeHtml(q.text)}">
+                <input type="hidden" name="questions[${index}][type]" value="${q.type}">
+            `;
+            list.appendChild(questionEl);
+        });
+    }
 
 function editQuestion(id) {
     const question = questions.find(q => q.id === id);
@@ -380,6 +481,7 @@ function saveEditedQuestion() {
 }
     </script>
 
+    <!-- Edit Question Modal -->
 <div class="modal fade" id="editQuestionModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">

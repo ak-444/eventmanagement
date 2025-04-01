@@ -15,16 +15,38 @@
             background-color: #293CB7;
             font-family: 'Arial', sans-serif;
             margin: 0;
+            flex-direction: column; /* Changed to column layout */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .header .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-top: 5px;
+            font-weight: 300;
         }
 
         .login-container {
-            background: rgba(255, 255, 255, 0.15); /* Lighter transparent background */
+            background: rgba(255, 255, 255, 0.15);
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 400px;
-            backdrop-filter: blur(5px); /* Subtle blur */
+            backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             text-align: center;
         }
@@ -72,7 +94,7 @@
         }
 
         .register-text a {
-            color: #FFD700; /* Yellow color for better visibility */
+            color: #FFD700;
             font-weight: bold;
             text-decoration: none;
         }
@@ -87,15 +109,28 @@
             font-weight: bold;
         }
 
-        /* For better visibility on small screens */
         @media (max-width: 768px) {
             .login-container {
                 max-width: 90%;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header .subtitle {
+                font-size: 0.9rem;
             }
         }
     </style>
 </head>
 <body>
+
+    <!-- Added Header Section -->
+    <div class="header">
+        <h1>ARELLANO UNIVERSITY</h1>
+        <div class="subtitle">Jose Abad Santos</div>
+    </div>
 
     <div class="login-container">
         <h2>Login</h2>

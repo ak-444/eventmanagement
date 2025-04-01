@@ -82,9 +82,19 @@ include 'sidebar.php';
     </style>
 </head>
 <body>
-    <!-- Sidebar -->\
-    <?php include 'sidebar.php'; ?>
-    
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h4>AU JAS</h4>
+        <a href="user_dashboard.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active' : '' ?>">
+            <i class="bi bi-house-door"></i> Dashboard
+        </a>
+        <a href="user_eventCalendar.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_eventCalendar.php' ? 'active' : '' ?>">
+            <i class="bi bi-calendar"></i> Event Calendar
+        </a>
+        <a href="user_evaluation.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_evaluation.php' ? 'active' : '' ?>">
+            <i class="bi bi-clipboard"></i> Evaluation
+        </a>
+    </div>
 
     <div class="content">
         <!-- Navbar -->
