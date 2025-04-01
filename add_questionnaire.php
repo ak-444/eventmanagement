@@ -378,6 +378,11 @@ function saveEditedQuestion() {
     bootstrap.Modal.getInstance(document.getElementById('editQuestionModal')).hide();
     editingQuestionId = null;
 }
+
+function deleteQuestion(id) {
+    questions = questions.filter(q => q.id !== id);
+    updateQuestionList();
+}
     </script>
 
 <div class="modal fade" id="editQuestionModal" tabindex="-1">

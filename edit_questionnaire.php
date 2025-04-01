@@ -84,8 +84,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Delete removed questions
     $deleted_ids = array_diff($existing_ids, $updated_ids);
     if (!empty($deleted_ids)) {
-        $ids = implode(',', $deleted_ids);
-        $conn->query("DELETE FROM questions WHERE id IN ($ids)");
+        try {
+            $conn->begin_transaction();
+            
+            // First delete associated answers
+            $ids = implode(',', $deleted_ids);
+            $conn->query("DELETE FROM answers WHERE question_id IN ($ids)");
+            
+            // Then delete the questions
+            $conn->query("DELETE FROM questions WHERE id IN ($ids)");
+            
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            die("Error deleting questions: " . $e->getMessage());
+        }
     }
 
     echo "<script>alert('Questionnaire updated successfully!'); window.location.href='admin_questionnaires.php';</script>";
@@ -478,6 +491,11 @@ function saveEditedQuestion() {
     // Hide the modal
     bootstrap.Modal.getInstance(document.getElementById('editQuestionModal')).hide();
     editingQuestionId = null;
+}
+
+function deleteQuestion(id) {
+    questions = questions.filter(q => q.id !== id);
+    updateQuestionList();
 }
     </script>
 
