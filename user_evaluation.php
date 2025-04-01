@@ -21,7 +21,7 @@ if ($result->num_rows > 0) {
 $event_id = $_GET['event_id'] ?? null;
 $questions = [];
 if ($event_id) {
-    $sql = "SELECT q.id, q.question_text 
+    $sql = "SELECT q.id, q.question_text, q.question_type 
             FROM questions q 
             JOIN questionnaires qn ON q.questionnaire_id = qn.id 
             WHERE qn.event_id = ?";
@@ -127,13 +127,53 @@ if ($event_id) {
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
-        /* Questions Styling */
+        .likert-scale {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .likert-option {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .likert-option:hover {
+            background: #f1f5f9;
+            transform: translateY(-2px);
+        }
+
+        .likert-option input[type="radio"] {
+            display: none;
+        }
+
+        .likert-option label {
+            display: block;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #f8fafc;
+        }
+
+        .likert-option input[type="radio"]:checked + label {
+            background: #6366f1;
+            color: white;
+        }
+
+        /* Adjust question styling */
         .question {
             margin-bottom: 25px;
             padding: 20px;
-            background: #f8fafc;
+            background: #fff;
             border-radius: 12px;
-            transition: background 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .question:hover {
             background: #f1f5f9;
@@ -199,18 +239,8 @@ if ($event_id) {
 </head>
 <body>
     <!-- Sidebar (unchanged) -->
-    <div class="sidebar">
-        <h4>AU JAS</h4>
-        <a href="user_dashboard.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_dashboard.php' ? 'active' : '' ?>">
-            <i class="bi bi-house-door"></i> Dashboard
-        </a>
-        <a href="user_eventCalendar.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_eventCalendar.php' ? 'active' : '' ?>">
-            <i class="bi bi-calendar"></i> Event Calendar
-        </a>
-        <a href="user_evaluation.php" class="<?= basename($_SERVER['PHP_SELF']) == 'user_evaluation.php' ? 'active' : '' ?>">
-            <i class="bi bi-clipboard"></i> Evaluation
-        </a>
-    </div>
+    <?php include 'sidebar.php'; ?>
+   
 
     <div class="content">
         <!-- Modern Navbar -->
@@ -245,35 +275,53 @@ if ($event_id) {
 
         <!-- Evaluation Questions Card -->
         <?php if ($event_id && !empty($questions)) : ?>
-            <div class="evaluation-card animate__animated animate__fadeInUp">
-                <h4 class="mb-4">Evaluation Questions</h4>
-                <form method="POST" action="submit_evaluation.php">
-                    <input type="hidden" name="event_id" value="<?= $event_id ?>">
-                    <?php foreach ($questions as $index => $question) : ?>
-                        <div class="question animate__animated animate__fadeIn" style="animation-delay: <?= $index * 0.05 ?>s">
-                            <label for="question_<?= $question['id'] ?>">
-                                <?= $index + 1 ?>. <?= htmlspecialchars($question['question_text']) ?>
-                            </label>
-                            <textarea class="form-control" 
+        <div class="evaluation-card animate__animated animate__fadeInUp">
+            <h4 class="mb-4">Evaluation Questions</h4>
+            <form method="POST" action="submit_evaluation.php">
+                <input type="hidden" name="event_id" value="<?= $event_id ?>">
+                <?php foreach ($questions as $index => $question) : ?>
+                    <div class="question animate__animated animate__fadeIn" style="animation-delay: <?= $index * 0.05 ?>s">
+                        <label>
+                            <?= $index + 1 ?>. <?= htmlspecialchars($question['question_text']) ?>
+                        </label>
+                        
+                        <?php if ($question['question_type'] === 'likert') : ?>
+                            <div class="likert-scale mt-3">
+                                <?php foreach ([1 => 'Strongly Disagree', 2 => 'Disagree', 3 => 'Neutral', 4 => 'Agree', 5 => 'Strongly Agree'] as $value => $label) : ?>
+                                    <div class="likert-option">
+                                        <input type="radio" 
+                                               id="question_<?= $question['id'] ?>_<?= $value ?>" 
+                                               name="responses[<?= $question['id'] ?>]" 
+                                               value="<?= $value ?>" 
+                                               required>
+                                        <label for="question_<?= $question['id'] ?>_<?= $value ?>">
+                                            <span class="d-block mb-2 fw-bold"><?= $value ?></span>
+                                            <span class="d-block text-sm"><?= $label ?></span>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else : ?>
+                            <textarea class="form-control mt-2" 
                                       id="question_<?= $question['id'] ?>" 
                                       name="responses[<?= $question['id'] ?>]" 
                                       placeholder="Enter your response here..."
                                       required></textarea>
-                        </div>
-                    <?php endforeach; ?>
-                    <div class="d-flex justify-content-end mt-4">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-send-fill me-2"></i> Submit Evaluation
-                        </button>
+                        <?php endif; ?>
                     </div>
-                </form>
-            </div>
-        <?php elseif ($event_id && empty($questions)) : ?>
-            <div class="alert alert-warning animate__animated animate__fadeIn">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> No questions found for this event.
-            </div>
-        <?php endif; ?>
-    </div>
+                <?php endforeach; ?>
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send-fill me-2"></i> Submit Evaluation
+                    </button>
+                </div>
+            </form>
+        </div>
+    <?php elseif ($event_id && empty($questions)) : ?>
+        <div class="alert alert-warning animate__animated animate__fadeIn">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> No questions found for this event.
+        </div>
+    <?php endif; ?>
 
     <script>
         // Add modern animations when elements come into view
