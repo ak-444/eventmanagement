@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $current_page = basename($_SERVER['PHP_SELF']);
-include 'sidebar.php';
 
 // Fetch all events for the dropdown
 $events_sql = "SELECT id, event_name FROM events ORDER BY event_name ASC";
@@ -25,8 +24,23 @@ if ($events_result && $events_result->num_rows > 0) {
 $selected_event_id = isset($_GET['event_id']) ? intval($_GET['event_id']) : 0;
 $questionnaires = [];
 $event_name = '';
+$questions = [];
 
 if ($selected_event_id > 0) {
+    // Get questions for the selected event
+    $sql = "SELECT q.id, q.question_text, q.question_type 
+            FROM questions q 
+            JOIN questionnaires qn ON q.questionnaire_id = qn.id 
+            WHERE qn.event_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $selected_event_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $questions[] = $row;
+    }
+    $stmt->close();
+
     // Get event name
     $event_sql = "SELECT event_name FROM events WHERE id = ?";
     $stmt = $conn->prepare($event_sql);
@@ -39,6 +53,7 @@ if ($selected_event_id > 0) {
     }
     $stmt->close();
 
+    // Get questionnaires for the selected event
     $sql = "SELECT q.id, q.title, q.description, q.created_at, 
            (SELECT COUNT(*) FROM questions WHERE questionnaire_id = q.id) AS question_count
            FROM questionnaires q
@@ -57,61 +72,6 @@ if ($selected_event_id > 0) {
     }
     $stmt->close();
 }
-
-
-    while ($question = $questions_result->fetch_assoc()) {
-        echo '<div class="response-question">';
-        echo '<h5>' . htmlspecialchars($question['question_text']) . ' <span class="badge bg-primary">' . $question['question_type'] . '</span></h5>';
-        
-        if ($question['question_type'] === 'likert') {
-            // Process Likert scale answers
-            $stmt = $conn->prepare("SELECT answer_text FROM answers WHERE question_id = ?");
-            $stmt->bind_param("i", $question['id']);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            $values = [];
-            while ($row = $result->fetch_assoc()) {
-                $values[] = (int)$row['answer_text'];
-            }
-            
-            if (count($values) > 0) {
-                $average = number_format(array_sum($values) / count($values), 2);
-                $distribution = array_count_values($values);
-                
-                echo '<div class="likert-stats">';
-                echo '<p>Average Rating: <strong>' . $average . '</strong></p>';
-                echo '<div class="distribution">';
-                for ($i = 1; $i <= 5; $i++) {
-                    $count = $distribution[$i] ?? 0;
-                    $percent = ($count / count($values)) * 100;
-                    echo '<div class="distribution-row">';
-                    echo '<span>' . $i . ' Stars</span>';
-                    echo '<div class="progress" style="height: 20px;">';
-                    echo '<div class="progress-bar" role="progressbar" style="width: ' . $percent . '%;">' . $count . '</div>';
-                    echo '</div></div>';
-                }
-                echo '</div></div>';
-            }
-        } else {
-            // Process text answers
-            $stmt = $conn->prepare("SELECT answer_text, username, submitted_at FROM answers 
-                                JOIN users ON answers.user_id = users.id 
-                                WHERE question_id = ?");
-            $stmt->bind_param("i", $question['id']);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            while ($response = $result->fetch_assoc()) {
-                echo '<div class="response-text">';
-                echo '<div class="response-user">' . htmlspecialchars($response['username']) . '</div>';
-                echo '<div class="response-content">' . nl2br(htmlspecialchars($response['answer_text'])) . '</div>';
-                echo '</div>';
-            }
-        }
-        
-        echo '</div>'; // Close response-question
-    }
 ?>
 
 <!DOCTYPE html>
@@ -680,7 +640,8 @@ if ($selected_event_id > 0) {
                 </div>
                 
                 <?php if (!empty($questionnaires)): ?>
-                    <div class="event-summary">
+            <!-- Summary cards and questionnaires table -->
+            <div class="event-summary">
                         <?php
                             $total_questions = 0;
                             foreach ($questionnaires as $q) {
@@ -716,192 +677,168 @@ if ($selected_event_id > 0) {
                             <h5>Total Participants</h5>
                             <p><?= $eval_count['total_users'] ?? 0 ?></p>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">
-                                <i class="bi bi-list-check"></i> Questionnaires
-                            </h5>
-                            <div>
-                                <button class="btn btn-sm btn-outline-primary" id="toggleQuestionnaires">
-                                    <i class="bi bi-arrows-expand"></i> Expand All
-                                </button>
+                </div>
+                    
+                    <?php if (!empty($questions)) : ?>
+                <!-- Questions and responses section -->
+                <div class="card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title"><i class="bi bi-chat-dots"></i> Evaluation Responses</h5>
+                            </div>
+                            <div class="card-body">
+                                <?php foreach ($questions as $index => $question) : ?>
+                                    <div class="response-question">
+                                        <h5><?= $index + 1 ?>. <?= htmlspecialchars($question['question_text']) ?></h5>
+                                        <div class="response-meta">
+                                            <span class="badge bg-<?= $question['question_type'] === 'likert' ? 'primary' : 'success' ?>">
+                                                <?= ucfirst($question['question_type']) ?>
+                                            </span>
+                                        </div>
+                    
+                                        <?php
+                                        // Fetch responses for this question
+                                        $response_sql = "SELECT a.answer_text, u.username, a.submitted_at 
+                                                        FROM answers a
+                                                        JOIN users u ON a.user_id = u.id
+                                                        WHERE a.question_id = ?";
+                                        $stmt = $conn->prepare($response_sql);
+                                        $stmt->bind_param("i", $question['id']);
+                                        $stmt->execute();
+                                        $responses = $stmt->get_result();
+                                        ?>
+                    
+                                        <?php if ($question['question_type'] === 'likert') : ?>
+                                            <!-- Likert Statistics -->
+                                            <?php
+                                            $likert_values = [];
+                                            while ($row = $responses->fetch_assoc()) {
+                                                $likert_values[] = (int)$row['answer_text'];
+                                            }
+                                            $total_responses = count($likert_values);
+                                            ?>
+                                            
+                                            <?php if ($total_responses > 0) : ?>
+                                                <div class="likert-stats mt-3">
+                                                    <p class="text-muted">Total Responses: <?= $total_responses ?></p>
+                                                    <p>Average Rating: <strong><?= number_format(array_sum($likert_values) / $total_responses, 2) ?></strong></p>
+                                                    <div class="distribution">
+                                                        <?php
+                                                        $distribution = array_count_values($likert_values);
+                                                        for ($i = 1; $i <= 5; $i++) :
+                                                            $count = $distribution[$i] ?? 0;
+                                                            $percent = ($count / $total_responses) * 100;
+                                                        ?>
+                                                            <div class="distribution-row mb-2">
+                                                                <span class="text-sm"><?= $i ?> Star (<?= $count ?>)</span>
+                                                                <div class="progress" style="height: 20px;">
+                                                                    <div class="progress-bar" role="progressbar" style="width: <?= $percent ?>%">
+                                                                        <?= number_format($percent, 1) ?>%
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                </div>
+                                            <?php else : ?>
+                                                <div class="alert alert-info">No responses for this question.</div>
+                                            <?php endif; ?>
+                    
+                                        <?php else : ?>
+                                            <!-- Text Responses -->
+                                            <div class="text-responses mt-3">
+                                                <?php if ($responses->num_rows > 0) : ?>
+                                                    <?php while ($response = $responses->fetch_assoc()) : ?>
+                                                        <div class="response-text">
+                                                            <div class="response-user">
+                                                                <i class="bi bi-person"></i>
+                                                                <?= htmlspecialchars($response['username']) ?>
+                                                                <small class="text-muted">
+                                                                    <?= date('M j, Y g:i a', strtotime($response['submitted_at'])) ?>
+                                                                </small>
+                                                            </div>
+                                                            <div class="response-content">
+                                                                <?= nl2br(htmlspecialchars($response['answer_text'])) ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endwhile; ?>
+                                                <?php else : ?>
+                                                    <div class="alert alert-info">No responses for this question.</div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                    
+                                        <?php $stmt->close(); ?>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive table-container">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th width="5%">#</th>
-                                            <th width="30%">Questionnaire Title</th>
-                                            <th width="40%">Description</th>
-                                            <th width="15%">Created On</th>
-                                            <th width="10%">Questions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php $counter = 1; foreach ($questionnaires as $row): ?>
-                                            <tr>
-                                                <td><?= $counter++ ?></td>
-                                                <td class="fw-medium"><?= htmlspecialchars($row['title']) ?></td>
-                                                <td><?= htmlspecialchars($row['description']) ?></td>
-                                                <td><i class="bi bi-calendar-date text-secondary me-1"></i> <?= date('M j, Y', strtotime($row['created_at'])) ?></td>
-                                                <td><span class="badge bg-primary rounded-pill"><?= $row['question_count'] ?> questions</span></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <?php
-                    // Get all questions for this event with their responses
-                    $questions_sql = "SELECT q.id, q.question_text, q.questionnaire_id, qn.title as questionnaire_title,
-                                      (SELECT COUNT(*) FROM answers WHERE question_id = q.id) as response_count
-                                      FROM questions q
-                                      JOIN questionnaires qn ON q.questionnaire_id = qn.id
-                                      WHERE qn.event_id = ?
-                                      ORDER BY q.questionnaire_id, q.id";
-                    
-                    $stmt = $conn->prepare($questions_sql);
-                    $stmt->bind_param("i", $selected_event_id);
-                    $stmt->execute();
-                    $questions_result = $stmt->get_result();
-                    
-                    if ($questions_result && $questions_result->num_rows > 0) {
-                        echo '<div class="card mt-4">';
-                        echo '<div class="card-header">';
-                        echo '<h5 class="card-title"><i class="bi bi-chat-dots"></i> Question Responses</h5>';
-                        echo '</div>';
-                        echo '<div class="card-body">';
-                        
-                        $current_questionnaire = null;
-                        
-                        while ($question = $questions_result->fetch_assoc()) {
-                            // Display questionnaire heading if changed
-                            if ($current_questionnaire !== $question['questionnaire_id']) {
-                                $current_questionnaire = $question['questionnaire_id'];
-                                echo '<div class="d-flex align-items-center mb-4 mt-3">';
-                                echo '<h6 class="mb-0 me-2"><i class="bi bi-clipboard text-primary"></i> ' . htmlspecialchars($question['questionnaire_title']) . '</h6>';
-                                echo '<hr class="flex-grow-1 ms-3">';
-                                echo '</div>';
-                            }
-                            
-                            echo '<div class="response-question">';
-                            echo '<h5>' . htmlspecialchars($question['question_text']) . '</h5>';
-                            echo '<div class="response-meta">';
-                            echo '<p>Total Responses: <span class="badge bg-primary rounded-pill">' . $question['response_count'] . '</span></p>';
-                            echo '</div>';
-                            
-                            if ($question['response_count'] > 0) {
-                                // Get all responses for this question
-                                $responses_sql = "SELECT a.answer_text, u.username, a.submitted_at 
-                                                 FROM answers a
-                                                 JOIN users u ON a.user_id = u.id
-                                                 WHERE a.question_id = ?
-                                                 ORDER BY a.submitted_at DESC";
-                                
-                                $stmt2 = $conn->prepare($responses_sql);
-                                $stmt2->bind_param("i", $question['id']);
-                                $stmt2->execute();
-                                $responses_result = $stmt2->get_result();
-                                
-                                while ($response = $responses_result->fetch_assoc()) {
-                                    echo '<div class="response-text">';
-                                    echo '<div class="response-user"><i class="bi bi-person-circle"></i> ' . htmlspecialchars($response['username']) . ' <small class="text-muted">' . date('M j, Y g:i a', strtotime($response['submitted_at'])) . '</small></div>';
-                                    echo '<div class="response-content">' . nl2br(htmlspecialchars($response['answer_text'])) . '</div>';
-                                    echo '</div>';
-                                }
-                                
-                                $stmt2->close();
-                            } else {
-                                echo '<div class="alert alert-info">No responses yet for this question.</div>';
-                            }
-                            
-                            echo '</div>'; // close response-question
-                        }
-                        
-                        echo '</div>'; // close card-body
-                        echo '</div>'; // close card
-                    }
-                    
-                    $stmt->close();
-                    
-                    // Get list of users who completed evaluations
-                    $users_sql = "SELECT DISTINCT a.user_id, u.username, 
-                                 COUNT(DISTINCT a.question_id) as questions_answered,
-                                 MAX(a.submitted_at) as last_submission
-                                 FROM answers a
-                                 JOIN users u ON a.user_id = u.id
-                                 WHERE a.question_id IN (
-                                     SELECT q.id FROM questions q
-                                     JOIN questionnaires qn ON q.questionnaire_id = qn.id
-                                     WHERE qn.event_id = ?
-                                 )
-                                 GROUP BY a.user_id
-                                 ORDER BY u.username";
-                    
-                    $stmt = $conn->prepare($users_sql);
-                    $stmt->bind_param("i", $selected_event_id);
-                    $stmt->execute();
-                    $users_result = $stmt->get_result();
-                    
-                    if ($users_result && $users_result->num_rows > 0) {
-                        echo '<div class="card mt-4">';
-                        echo '<div class="card-header">';
-                        echo '<h5 class="card-title">Evaluation Participants</h5>';
-                        echo '</div>';
-                        echo '<div class="card-body">';
-                        echo '<div class="table-responsive">';
-                        echo '<table class="table table-striped">';
-                        echo '<thead><tr><th>#</th><th>User</th><th>Questions Answered</th><th>Last Submission</th></tr></thead>';
-                        echo '<tbody>';
-                        
-                        $user_counter = 1;
-                        while ($user = $users_result->fetch_assoc()) {
-                            echo "<tr>";
-                            echo "<td>" . $user_counter++ . "</td>";
-                            echo "<td>" . htmlspecialchars($user['username']) . "</td>";
-                            echo "<td><span class='badge bg-primary rounded-pill'>" . $user['questions_answered'] . "</span></td>";
-                            echo "<td>" . date('M j, Y g:i a', strtotime($user['last_submission'])) . "</td>";
-                            echo "</tr>";
-                        }
-                        
-                        echo '</tbody></table>';
-                        echo '</div>';
-                        echo '</div>';
-                        echo '</div>';
-                    } else {
-                        echo '<div class="alert alert-info mt-4">No evaluations have been submitted for this event yet.</div>';
-                    }
-                    
-                    $stmt->close();
-                    ?>
-                    
-                <?php else: ?>
-                    <div class="alert alert-warning">No questionnaires found for the selected event.</div>
-                <?php endif; ?>
-                
-            <?php else: ?>
-                <div class="alert alert-info">Please select an event to view its report.</div>
+            <?php else : ?>
+                <div class="alert alert-warning">No questions found for this event.</div>
             <?php endif; ?>
-        </div>
-    </div>
-
-    <script>
-        function printReport() {
-            window.print();
-        }
-        
-        // Auto-submit form when event is selected
-        document.getElementById('event_id').addEventListener('change', function() {
-            if (this.value > 0) {
-                this.form.submit();
+  <!-- Completed Evaluations Section (Moved Outside Questions Check) -->
+  <?php
+        $total_questions = count($questions);
+        if ($total_questions > 0) {
+            // Fetch and display users who completed all questions
+            $user_sql = "SELECT u.id, u.username, COUNT(a.id) as answered 
+                        FROM users u
+                        JOIN answers a ON u.id = a.user_id
+                        WHERE a.question_id IN (
+                            SELECT q.id FROM questions q
+                            JOIN questionnaires qn ON q.questionnaire_id = qn.id
+                            WHERE qn.event_id = ?
+                        )
+                        GROUP BY u.id
+                        HAVING answered = ?";
+            
+            $stmt = $conn->prepare($user_sql);
+            $stmt->bind_param("ii", $selected_event_id, $total_questions);
+            $stmt->execute();
+            $users_result = $stmt->get_result();
+            
+            if ($users_result->num_rows > 0) {
+                echo '<div class="card mt-4">';
+                echo '<div class="card-header">';
+                echo '<h5 class="card-title"><i class="bi bi-check-circle"></i> Completed Evaluations</h5>';
+                echo '</div>';
+                echo '<div class="card-body">';
+                echo '<div class="table-responsive">';
+                echo '<table class="table table-striped">';
+                echo '<thead>';
+                echo '<tr><th>#</th><th>Participant</th><th>Completed At</th></tr>';
+                echo '</thead><tbody>';
+                
+                $counter = 1;
+                while ($user = $users_result->fetch_assoc()) {
+                    // Get completion timestamp
+                    $time_sql = "SELECT MAX(submitted_at) as last_submit FROM answers 
+                                WHERE user_id = ? AND question_id IN (
+                                    SELECT q.id FROM questions q
+                                    JOIN questionnaires qn ON q.questionnaire_id = qn.id
+                                    WHERE qn.event_id = ?
+                                )";
+                    $stmt2 = $conn->prepare($time_sql);
+                    $stmt2->bind_param("ii", $user['id'], $selected_event_id);
+                    $stmt2->execute();
+                    $time_result = $stmt2->get_result();
+                    $last_submit = $time_result->fetch_assoc()['last_submit'];
+                    
+                    echo '<tr>';
+                    echo '<td>'.$counter++.'</td>';
+                    echo '<td>'.htmlspecialchars($user['username']).'</td>';
+                    echo '<td>'.date('M j, Y g:i a', strtotime($last_submit)).'</td>';
+                    echo '</tr>';
+                }
+                
+                echo '</tbody></table>';
+                echo '</div></div></div>';
             }
-        });
-    </script>
-</body>
-</html>
+            $stmt->close();
+        }
+        ?>
+    <?php else: ?>
+        <div class="alert alert-warning">No questionnaires found for the selected event.</div>
+    <?php endif; ?>
+<?php else: ?>
+    <div class="alert alert-info">Please select an event to view its report.</div>
+<?php endif; ?>

@@ -14,13 +14,19 @@ include 'sidebar.php';
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     
-    // First, delete all questions related to this questionnaire
+    // First, delete all answers related to the questions of this questionnaire
+    $delete_answers = $conn->prepare("DELETE answers FROM answers INNER JOIN questions ON answers.question_id = questions.id WHERE questions.questionnaire_id = ?");
+    $delete_answers->bind_param("i", $delete_id);
+    $delete_answers->execute();
+    $delete_answers->close();
+    
+    // Then delete all questions related to this questionnaire
     $delete_questions = $conn->prepare("DELETE FROM questions WHERE questionnaire_id = ?");
     $delete_questions->bind_param("i", $delete_id);
     $delete_questions->execute();
     $delete_questions->close();
     
-    // Then delete the questionnaire
+    // Finally, delete the questionnaire
     $delete_questionnaire = $conn->prepare("DELETE FROM questionnaires WHERE id = ?");
     $delete_questionnaire->bind_param("i", $delete_id);
     
